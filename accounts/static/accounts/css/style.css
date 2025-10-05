@@ -1,0 +1,146 @@
+/* ----------- Base styles ----------- */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f8f9fa;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* ----------- Register Page ----------- */
+.register-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 100px);
+    padding: 20px;
+}
+
+.register-card {
+    width: 100%;
+    max-width: 600px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    padding: 40px;
+}
+
+.register-card h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #555;
+}
+
+/* ----------- Tabs ----------- */
+.tab-container {
+    display: flex;
+    margin-bottom: 20px;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.tab-button {
+    flex: 1;
+    padding: 12px 0;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #555;
+    transition: background-color 0.3s, color 0.3s;
+    text-align: center;
+}
+
+.tab-button.active {
+    background-color: #667eea;
+    color: white;
+}
+
+.tab-content {
+    display: none;
+    padding: 10px 0;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* ----------- Form styles ----------- */
+.register-form .form-group {
+    margin-bottom: 20px;
+}
+
+.register-form label {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.register-form input,
+.register-form textarea,
+.register-form select {
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.register-form input:focus,
+.register-form textarea:focus,
+.register-form select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+/* ----------- Optional text ----------- */
+.optional-label {
+    font-size: 0.9em;
+    font-weight: normal;
+    color: #666;
+    margin-left: 4px;
+}
+
+/* ----------- Button ----------- */
+.register-form .btn-primary {
+    display: block;
+    width: 100%;
+    text-align: center;
+    border-radius: 8px;
+    border: none;
+    padding: 15px;
+    background: linear-gradient(45deg, #ff6b6b, #feca57);
+    font-weight: 600;
+    color: #fff;
+    margin-top: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.register-form .btn-primary:hover {
+    background: linear-gradient(45deg, #0056b3, #0056b3);
+    transform: translateY(-3px);
+    box-shadow: 0 15px 35px rgba(255, 107, 107, 0.4);
+}
+
+/* ----------- Errors ----------- */
+.errorlist {
+    color: red;
+    margin-top: 5px;
+}
+
+.errorlist li {
+    list-style-type: none;
+}
+
+/* ----------- Responsive ----------- */
+@media (max-width: 768px) {
+    .register-card {
+        padding: 20px;
+    }
+}

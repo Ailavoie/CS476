@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+  <h2>Welcome, Dr. {{ user.username }} 👋 (Therapist)</h2>
+
+  <div class="card mt-3 p-3 shadow-sm">
+    <h4>Authorized Clients</h4>
+    <p>View and manage journals of your connected clients.</p>
+    <a href="#" class="btn btn-primary">👥 View My Clients</a>
+  </div>
+
+  <div class="card mt-4 p-3 shadow-sm">
+    <h4>Client Journals</h4>
+    <p>Access journal entries and provide feedback.</p>
+    <a href="#" class="btn btn-success">📓 Review Journals</a>
+  </div>
+
+  <div class="card mt-4 p-3 shadow-sm">
+    <h4>Notifications</h4>
+    <p>Get notified when a client submits a new journal entry.</p>
+    <a href="#" class="btn btn-warning">🔔 View Notifications</a>
+  </div>
+</div>
+{% endblock %}
