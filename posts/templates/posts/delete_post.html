@@ -10,16 +10,16 @@
 {% endblock %}
 
 {% block content %}
-<section class="new-post">  <!-- Misma clase para el fondo y padding -->
+<section class="new-post">  <!-- Same class for background and padding -->
   <div class="container">
     <div class="section-title">
       <h2>Delete Post</h2>
-      <p>Are you sure you want to delete this journal entry?</p>  <!-- Mensaje más descriptivo -->
+      <p>Are you sure you want to delete this journal entry?</p>
     </div>
-    <div class="form-container">  <!-- Contenedor con los mismos estilos de formulario -->
+    <div class="form-container">  <!-- Container with the same form styles -->
       <form method="post">
         {% csrf_token %}
-        <p>This action cannot be undone.</p>  <!-- Advertencia adicional -->
+        <p>This action cannot be undone.</p>
         <button type="submit" class="btn btn-danger">
           <i class="fas fa-trash-alt"></i> Yes, delete
         </button>

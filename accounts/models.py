@@ -1,3 +1,4 @@
+import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -57,5 +58,25 @@ class TherapistProfile(models.Model):
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     rating = models.FloatField(default=0.0)
 
+    connection_code = models.CharField(max_length=8, unique=True, blank=True)
+    
+    def save(self, *args, **kwargs):
+        if not self.connection_code:
+            self.connection_code = str(uuid.uuid4())[:8]
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"Therapist: {self.first_name} {self.last_name}"
+
+class ConnectionRequest(models.Model):
+    client = models.ForeignKey(ClientProfile, on_delete=models.CASCADE, related_name="sent_requests")
+    therapist = models.ForeignKey(TherapistProfile, on_delete=models.CASCADE, related_name="received_requests")
+    status = models.CharField(
+        max_length=10,
+        choices=[("pending", "Pending"), ("accepted", "Accepted"), ("rejected", "Rejected")],
+        default="pending"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.client} → {self.therapist} ({self.status})"

@@ -26,10 +26,9 @@ document.addEventListener('DOMContentLoaded', function() {
         postElement.remove();
         MicroModal.close('deleteModal');
 
-        // Verificar si ya no quedan posts
         if (document.querySelectorAll('.post-item').length === 0) {
           const postsList = document.querySelector('.posts-list');
-          if (postsList) postsList.remove(); // Eliminar la lista vacía
+          if (postsList) postsList.remove();
 
           const container = document.querySelector('.posts-container');
           const noPostsMessage = document.createElement('p');

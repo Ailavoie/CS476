@@ -25,7 +25,7 @@
       {% if posts %}
         <ul class="posts-list">
           {% for post in posts %}
-            <li class="post-item" data-post-id="{{ post.pk }}">  <!-- Añadir data-post-id al li -->
+            <li class="post-item" data-post-id="{{ post.pk }}">
               <div class="post-date">
                 <i class="far fa-clock"></i> {{ post.created_at|date:"Y-m-d H:i" }}
               </div>
@@ -58,7 +58,6 @@
         <p class="no-posts">No posts yet.</p>
       {% endif %}
 
-      <!-- Modal HTML -->
       <div class="modal micromodal-slide" id="deleteModal" aria-hidden="true">
         <div class="modal__overlay" tabindex="-1" data-micromodal-close>
           <div class="modal__container" role="dialog" aria-modal="true" aria-labelledby="deleteModal-title">
@@ -86,5 +85,5 @@
 
 {% block extra_js %}
   {% load static %}
-  <script src="{% static 'posts/js/posts.js' %}"></script>  <!-- Enlaza tu archivo JS -->
+  <script src="{% static 'posts/js/posts.js' %}"></script>
 {% endblock %}

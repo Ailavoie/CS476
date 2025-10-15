@@ -30,5 +30,6 @@ class TherapistProfileAdmin(admin.ModelAdmin):
         "country",
         "province",
         "phone_number",
+        "connection_code",
     )
 

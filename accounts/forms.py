@@ -89,3 +89,6 @@ class TherapistRegisterForm(BaseRegisterForm):
             phone_number=self.cleaned_data.get("phone_number"),
         )
         return user
+    
+class ConnectionRequestForm(forms.Form):
+    therapist_code = forms.CharField(max_length=8, required=True, label="Therapist Code")

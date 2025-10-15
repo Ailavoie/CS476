@@ -1,7 +1,13 @@
-from django.shortcuts import render, redirect
+from django.views.generic import ListView
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views import View
+from django.views.generic import FormView
 from django.urls import reverse_lazy
 from django.views.generic import TemplateView
-from .forms import ClientRegisterForm, TherapistRegisterForm
+from django.contrib import messages
+from accounts.models import ConnectionRequest, TherapistProfile
+from .forms import ClientRegisterForm, ConnectionRequestForm, TherapistRegisterForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
 
@@ -44,6 +50,72 @@ class RegisterView(TemplateView):
             therapist_form = TherapistRegisterForm()
             context = {'client_form': client_form, 'therapist_form': therapist_form, 'error': 'Please select an account type.'}
             return render(request, self.template_name, context)
+        
+class SendConnectionRequestView(LoginRequiredMixin, FormView):
+    template_name = "accounts/send_request.html"
+    form_class = ConnectionRequestForm
+    success_url = reverse_lazy("accounts:client_dashboard")
+
+    def form_valid(self, form):
+        code = form.cleaned_data["therapist_code"].strip()
+        client_profile = self.request.user.client_profile
+
+        if client_profile.therapist:
+            messages.error(self.request, "You already have a therapist.")
+            return redirect(self.success_url)
+
+        therapist = get_object_or_404(TherapistProfile, connection_code=code)
+
+        existing_request = ConnectionRequest.objects.filter(
+            client=client_profile,
+            therapist=therapist,
+            status__in=["pending", "accepted"]
+        ).first()
+
+        if existing_request:
+            messages.warning(self.request, "You already sent a request to this therapist.")
+            return redirect(self.success_url)
+
+        ConnectionRequest.objects.create(client=client_profile, therapist=therapist)
+        messages.success(self.request, "Connection request sent!")
+        return super().form_valid(form)
+    
+class ConnectionRequestListView(LoginRequiredMixin, ListView):
+    model = ConnectionRequest
+    template_name = "accounts/therapist_requests.html"
+    context_object_name = "requests"
+
+    def get_queryset(self):
+        therapist = self.request.user.therapist_profile
+        return ConnectionRequest.objects.filter(therapist=therapist, status="pending").order_by("-created_at")
+
+class AcceptConnectionRequestView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        therapist = request.user.therapist_profile
+        connection_request = get_object_or_404(ConnectionRequest, pk=pk, therapist=therapist, status="pending")
+
+        client_profile = connection_request.client
+        client_profile.therapist = therapist
+        client_profile.save()
+
+        connection_request.status = "accepted"
+        connection_request.save()
+
+        messages.success(request, f"You are now connected with {client_profile.first_name}.")
+        return redirect("accounts:therapist_requests")
+
+
+class RejectConnectionRequestView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        therapist = request.user.therapist_profile
+        connection_request = get_object_or_404(ConnectionRequest, pk=pk, therapist=therapist, status="pending")
+
+        connection_request.status = "rejected"
+        connection_request.save()
+
+        messages.info(request, "Request rejected.")
+        return redirect("accounts:therapist_requests")
+
 
 @login_required
 def dashboard_view(request):
