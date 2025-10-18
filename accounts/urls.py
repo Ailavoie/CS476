@@ -6,6 +6,7 @@ app_name = 'accounts'
 
 urlpatterns = [
     path("register/", views.RegisterView.as_view(), name="register"),
+    path("ajax/load_provinces/", views.load_provinces, name="ajax_load_provinces"),
     path("dashboard/", views.dashboard_view, name="dashboard"),
     path("login/", auth_views.LoginView.as_view(template_name='accounts/login.html', next_page='core:home'), name="login"),
     path('logout/', auth_views.LogoutView.as_view(next_page='accounts:login'), name='logout'),

@@ -1,6 +1,35 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+COUNTRY_CHOICES = (
+    ('', 'Select Country'), 
+    ('US', 'United States'),
+    ('CA', 'Canada'),
+)
+
+
+REGION_DATA = {
+'US': [
+('AL', 'Alabama'), ('AK', 'Alaska'), ('AZ', 'Arizona'), ('AR', 'Arkansas'), ('CA', 'California'),
+('CO', 'Colorado'), ('CT', 'Connecticut'), ('DE', 'Delaware'), ('FL', 'Florida'), ('GA', 'Georgia'),
+('HI', 'Hawaii'), ('ID', 'Idaho'), ('IL', 'Illinois'), ('IN', 'Indiana'), ('IA', 'Iowa'),
+('KS', 'Kansas'), ('KY', 'Kentucky'), ('LA', 'Louisiana'), ('ME', 'Maine'), ('MD', 'Maryland'),
+('MA', 'Massachusetts'), ('MI', 'Michigan'), ('MN', 'Minnesota'), ('MS', 'Mississippi'), ('MO', 'Missouri'),
+('MT', 'Montana'), ('NE', 'Nebraska'), ('NV', 'Nevada'), ('NH', 'New Hampshire'), ('NJ', 'New Jersey'),
+('NM', 'New Mexico'), ('NY', 'New York'), ('NC', 'North Carolina'), ('ND', 'North Dakota'), ('OH', 'Ohio'),
+('OK', 'Oklahoma'), ('OR', 'Oregon'), ('PA', 'Pennsylvania'), ('RI', 'Rhode Island'), ('SC', 'South Carolina'),
+('SD', 'South Dakota'), ('TN', 'Tennessee'), ('TX', 'Texas'), ('UT', 'Utah'), ('VT', 'Vermont'),
+('VA', 'Virginia'), ('WA', 'Washington'), ('WV', 'West Virginia'), ('WI', 'Wisconsin'), ('WY', 'Wyoming'),
+],
+
+'CA': [
+('AB', 'Alberta'), ('BC', 'British Columbia'), ('MB', 'Manitoba'), ('NB', 'New Brunswick'),
+('NL', 'Newfoundland and Labrador'), ('NS', 'Nova Scotia'), ('NT', 'Northwest Territories'),
+('NU', 'Nunavut'), ('ON', 'Ontario'), ('PE', 'Prince Edward Island'), ('QC', 'Quebec'),
+('SK', 'Saskatchewan'), ('YT', 'Yukon'),
+],
+}
+
 class User(AbstractUser):
     username = models.CharField(
         max_length=150,
@@ -22,7 +51,7 @@ class ClientProfile(models.Model):
     date_of_birth = models.DateField()
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100, blank=True, null=True)
-    country = models.CharField(max_length=100, blank=True, null=True)
+    country = models.CharField(max_length=100, choices=COUNTRY_CHOICES, blank=True, null=True)
     province = models.CharField(max_length=100, blank=True, null=True)
     street = models.CharField(max_length=255, blank=True, null=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
@@ -49,9 +78,9 @@ class TherapistProfile(models.Model):
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100, blank=True, null=True)
     license_number = models.CharField(max_length=50)
-    specialty = models.CharField(max_length=100)
+    specialty = models.CharField(max_length=500, help_text="Select one or more specialties")
 
-    country = models.CharField(max_length=100)
+    country = models.CharField(max_length=100, choices= COUNTRY_CHOICES)
     province = models.CharField(max_length=100)
     street = models.CharField(max_length=255, blank=True, null=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
