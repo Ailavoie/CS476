@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'accounts/css/style.css' %}">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'accounts/js/eventHandlers.js' %}"></script>
+    <script src="{% static 'accounts/js/register.js' %}"></script> 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container register-container" data-initial-tab="{{ initial_tab }}">
+    <div class="register-card">
+        <h2 id="form-title">Register as a Client</h2>
+
+        <div class="tab-container">
+            <button class="tab-button active" data-tab="client">Client</button>
+            <button class="tab-button" data-tab="therapist">Therapist</button>
+        </div>
+
+        <form id="signup-form" method="post" class="register-form">
+            {% csrf_token %}
+            <input type="hidden" id="account_type" name="account_type" value="client">
+
+            <!-- ----------- Client Form ----------- -->
+            <div id="client-form" class="tab-content active">
+                {% for field in client_form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">
+                            {{ field.label }}
+                            {% if not field.field.required %}
+                                <span class="optional-label">(Optional)</span>
+                            {% endif %}
+                        </label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <ul class="errorlist">
+                                {% for error in field.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- ----------- Therapist Form ----------- -->
+            <div id="therapist-form" class="tab-content" {% if initial_tab == 'therapist' %}active{% endif %}>
+                {% for field in therapist_form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">
+                            {{ field.label }}
+                            {% if not field.field.required %}
+                                <span class="optional-label">(Optional)</span>
+                            {% endif %}
+                        </label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <ul class="errorlist">
+                                {% for error in field.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- ----------- Submit Button ----------- -->
+            <button type="submit" class="btn btn-primary">Register</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+
+
+

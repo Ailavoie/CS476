@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+  <h2>Welcome, {{ user.username }} 👋 (Client)</h2>
+
+  <div class="card mt-3 p-3 shadow-sm">
+    <h4>Your Journal</h4>
+    <p>Create and manage your journal entries to track your thoughts and progress.</p>
+    <a href="#" class="btn btn-primary">📓 New Journal Entry</a>
+    <a href="#" class="btn btn-outline-secondary">📚 View My Entries</a>
+  </div>
+
+  <div class="card mt-4 p-3 shadow-sm">
+    <h4>Suggested Therapists</h4>
+    <p>Find therapists with ratings and contact information.</p>
+    <a href="#" class="btn btn-success">👩‍⚕️ View Therapists</a>
+  </div>
+
+  <div class="card mt-4 p-3 shadow-sm">
+    <h4>Therapist Feedback</h4>
+    <p>Access comments and feedback from your connected therapist.</p>
+    <a href="#" class="btn btn-info">💬 View Feedback</a>
+  </div>
+
+  <div class="card mt-4 p-3 shadow-sm">
+    <h4>Mental Health Support</h4>
+    <p>If you need urgent help, here are mental health helplines.</p>
+    <a href="#" class="btn btn-danger">📞 Helplines</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mindlink - Therapy for Mental Wellbeing{% endblock %}
+
+{% block description %}Connect with professional therapists through a safe therapeutic writing space. Share your thoughts and receive personalized guidance.{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/home.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero" id="inicio">
+    <div class="container">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1>Your mental wellbeing is our <span class="highlight">priority</span></h1>
+                <p>Connect with professional therapists through a safe therapeutic writing space. Share your thoughts and receive personalized guidance.</p>
+                
+                <div class="cta-buttons">
+                    <a href="{% url 'accounts:register' %}" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i>
+                        Get Started Now
+                    </a>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 20px; opacity: 0.8;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>100% Confidential</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-user-md"></i>
+                        <span>Certified Therapists</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-visual">
+                <div class="journal-mockup">
+                    <div class="journal-header">
+                        <div class="journal-avatar">ML</div>
+                        <div>
+                            <div class="journal-title">My Entry Today</div>
+                            <div class="journal-date">September 27, 2025</div>
+                        </div>
+                    </div>
+                    <div class="journal-content">
+                        Today I feel more optimistic about the future. I've been practicing the techniques my therapist recommended and I'm noticing a big difference in my mood...
+                    </div>
+                    <div class="therapist-response">
+                        <strong>Dr. Garcia:</strong> I'm so glad to read about your progress. Consistency in practice is key. Could you tell me more about which technique you've found most helpful?
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features" id="caracteristicas">
+    <div class="container">
+        <div class="section-title">
+            <h2>Why choose Mindlink?</h2>
+            <p>Our platform combines therapeutic writing with professional guidance to create a unique mental wellbeing experience.</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-journal-whills"></i>
+                </div>
+                <h3>Secure Digital Journal</h3>
+                <p>Write your thoughts and experiences in a completely private and secure space, specially designed for the therapeutic process.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h3>Professional Feedback</h3>
+                <p>Receive personalized feedback and guidance from certified therapists who will accompany you on your personal growth journey.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <h3>Smart Notifications</h3>
+                <p>Stay up to date with notifications when your therapist responds or when it's time to write in your journal.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Privacy Guaranteed</h3>
+                <p>Your information is protected with the highest security standards. Only authorized therapists can access your entries.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-phone-alt"></i>
+                </div>
+                <h3>Help Lines</h3>
+                <p>Quick access to professional help lines for moments when you need immediate support 24 hours a day.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <h3>Multiplatform Access</h3>
+                <p>Access from any device, at any time. Your therapeutic process will always be available when you need it.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- User Types Section -->
+<section class="user-types" id="como-funciona">
+    <div class="container">
+        <div class="section-title">
+            <h2>Designed for you</h2>
+            <p>Whether you're someone looking for support or a mental health professional, we have the perfect tools for you.</p>
+        </div>
+
+        <div class="user-types-grid">
+            <div class="user-type-card">
+                <div class="user-type-header">
+                    <div class="user-type-icon">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <h3>For Clients</h3>
+                    <p>Your safe space to grow</p>
+                </div>
+                <div class="user-type-content">
+                    <ul class="user-type-features">
+                        <li><i class="fas fa-pencil-alt"></i> Create personal journal entries</li>
+                        <li><i class="fas fa-search"></i> Find qualified therapists</li>
+                        <li><i class="fas fa-comments"></i> Receive professional feedback</li>
+                        <li><i class="fas fa-bell"></i> Response notifications</li>
+                        <li><i class="fas fa-user-friends"></i> Total control of connections</li>
+                        <li><i class="fas fa-phone"></i> Access to help lines</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="user-type-card">
+                <div class="user-type-header">
+                    <div class="user-type-icon">
+                        <i class="fas fa-user-md"></i>
+                    </div>
+                    <h3>For Therapists</h3>
+                    <p>Professional support tools</p>
+                </div>
+                <div class="user-type-content">
+                    <ul class="user-type-features">
+                        <li><i class="fas fa-clipboard-list"></i> Authorized patient dashboard</li>
+                        <li><i class="fas fa-eye"></i> Controlled access to journals</li>
+                        <li><i class="fas fa-comment-medical"></i> Commenting system</li>
+                        <li><i class="fas fa-bell"></i> Notifications of new entries</li>
+                        <li><i class="fas fa-history"></i> Complete interaction history</li>
+                        <li><i class="fas fa-user-shield"></i> Authorization management</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'core/js/home.js' %}"></script>
+{% endblock %}
