@@ -292,4 +292,55 @@
   align-items: center;
 }
 
-/* Modifica los estilos .btn-sm, .btn-delete, .btn-secondary si es necesario para que coincidan con el estilo del modal */
+.client-item {
+    padding: 15px 20px;
+    border: 1px solid #eee; 
+    border-radius: 8px;
+    margin-bottom: 15px;
+    background-color: #fff;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    
+    display: flex;
+    justify-content: space-between; /* Nombre a la izquierda, botón a la derecha */
+    align-items: center;            /* Centrado vertical */
+}
+
+.client-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.client-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;  /* Espacio entre el ícono y el nombre */
+}
+
+.client-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.view-posts-button {
+    background-color: #667eea;
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.view-posts-button:hover {
+    background-color: #764ba2;
+}
+
+.post-actions-left {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}

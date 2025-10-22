@@ -8,4 +8,7 @@ urlpatterns = [
     path("create/", views.PostCreateView.as_view(), name="create_post"),
     path("<int:pk>/edit/", views.PostUpdateView.as_view(), name="edit_post"),
     path("<int:pk>/delete/", views.PostDeleteView.as_view(), name="delete_post"),
+    path("therapist/clients/", views.TherapistClientListView.as_view(), name="therapist_clients"),
+    path("therapist/clients/<int:client_id>/posts/", views.TherapistClientPostsView.as_view(), name="therapist_client_posts"),
+    path("<int:post_id>/add_comment/", views.AddCommentView.as_view(), name="add_comment"),
 ]

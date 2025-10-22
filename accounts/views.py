@@ -50,6 +50,26 @@ class RegisterView(TemplateView):
             therapist_form = TherapistRegisterForm()
             context = {'client_form': client_form, 'therapist_form': therapist_form, 'error': 'Please select an account type.'}
             return render(request, self.template_name, context)
+
+from datetime import date
+from django.views.generic import ListView
+from accounts.models import TherapistProfile
+
+class TherapistListView(ListView):
+    model = TherapistProfile
+    template_name = "accounts/therapist_list.html"
+    context_object_name = "therapists"
+
+    def get_queryset(self):
+        therapists = super().get_queryset()
+
+        today = date.today()
+        for t in therapists:
+            if t.date_of_birth:
+                t.age = today.year - t.date_of_birth.year - (
+                    (today.month, today.day) < (t.date_of_birth.month, t.date_of_birth.day)
+                )
+        return therapists
         
 class SendConnectionRequestView(LoginRequiredMixin, FormView):
     template_name = "accounts/send_request.html"

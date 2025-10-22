@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}
+  Mindlink - {{ client.first_name }}'s Posts
+{% endblock %}
+
+{% block extra_css %}
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'posts/css/style.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="my-posts">
+  <div class="container">
+    <div class="section-title">
+      <h2>Posts from {{ client.first_name }} {{ client.last_name }}</h2>
+      <p>Review and leave your comments on your client’s entries.</p>
+    </div>
+    <div class="post-actions-left">
+      <a href="{% url 'posts:therapist_clients' %}" class="btn-secondary">← Back to Client List</a>
+    </div>
+
+
+    <div class="posts-container">
+      {% if posts %}
+        <ul class="posts-list">
+          {% for post in posts %}
+            <li class="post-item">
+              <div class="post-date">
+                <i class="fas fa-calendar-alt"></i>
+                <span><em>Created at:</em> {{ post.created_at|date:"F j, Y, g:i a" }}</span>
+              </div>
+
+              <div class="post-text">
+                <p><strong>Post:</strong> {{ post.text }}</p>
+              </div>
+
+              <form method="post" action="{% url 'posts:add_comment' post.id %}" class="comment-form">
+                {% csrf_token %}
+                <div class="form-container">
+                  <label for="commentary-{{ post.id }}"><strong>Your Comment:</strong></label>
+                  <textarea id="commentary-{{ post.id }}" name="commentary" rows="3" placeholder="Leave a comment...">
+                    {{ post.commentary|default_if_none:"" }}
+                  </textarea>
+                  <div class="post-actions">
+                    <button type="submit" class="btn-sm btn-edit">💾 Save Comment</button>
+                  </div>
+                </div>
+              </form>
+
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="no-posts">No posts yet for this client.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -14,6 +14,14 @@ class User(AbstractUser):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
 
+    @property
+    def is_client(self):
+        return hasattr(self, "client_profile")
+
+    @property
+    def is_therapist(self):
+        return hasattr(self, "therapist_profile")
+
     def __str__(self):
         return self.email
 

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}
+  Mindlink - Your Clients
+{% endblock %}
+
+{% block extra_css %}
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'posts/css/style.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="my-posts">
+  <div class="container">
+    <div class="section-title">
+      <h2>Your Clients</h2>
+      <p>Connect with your clients and view their journal entries.</p>
+    </div>
+
+    <div class="posts-container">
+      {% if clients %}
+        <ul class="posts-list">
+          {% for client in clients %}
+            <li class="post-item client-item">
+              <div class="client-info">
+                <i class="fas fa-user"></i>
+                <span class="client-name">{{ client.first_name }} {{ client.last_name }}</span>
+              </div>
+
+              <div class="client-actions">
+                <form action="{% url 'posts:therapist_client_posts' client.id %}" method="get">
+                  <button type="submit" class="view-posts-button">
+                    View Posts
+                  </button>
+                </form>
+              </div>
+            </li>
+          {% endfor %}
+
+        </ul>
+      {% else %}
+        <p class="no-posts">No clients assigned yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static %}
+{% load tz %}
+
+{% block title %}Find Your Therapist - Mindlink{% endblock %}
+{% block description %}Explore our list of certified therapists and connect with the right professional for your wellbeing.{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'accounts/css/style.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="therapists-section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Our Therapists</h2>
+            <p>Connect with certified professionals specialized in improving your mental wellbeing.</p>
+        </div>
+
+        <div class="therapist-actions">
+            <a href="{% url 'accounts:send_connection_request' %}" class="btn btn-primary">
+                <i class="fas fa-link"></i> Connect with a therapist
+            </a>
+        </div>
+
+        <div class="therapist-grid">
+            {% for therapist in therapists %}
+                <div class="therapist-card">
+                    <div class="therapist-avatar">
+                        <i class="fas fa-user-md"></i>
+                    </div>
+                    <div class="therapist-info">
+                        <h3>{{ therapist.first_name }} {{ therapist.last_name }}</h3>
+                        <p class="specialty">{{ therapist.specialty|default:"General Therapist" }}</p>
+                        <p class="location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            {{ therapist.country }}, {{ therapist.province }}
+                        </p>
+                        {% if therapist.phone_number %}
+                            <p class="phone">
+                                <i class="fas fa-phone-alt"></i>
+                                {{ therapist.phone_number }}
+                            </p>
+                        {% endif %}
+                        {% if therapist.age %}
+                            <p class="age">
+                                <i class="fas fa-birthday-cake"></i>
+                                {{ therapist.age }} years old
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+            {% empty %}
+                <p class="no-therapists">No therapists available at the moment. Please check back later.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}
