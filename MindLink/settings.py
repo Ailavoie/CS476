@@ -41,10 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "accounts",
     "core",
-<<<<<<< HEAD
     "posts",
-=======
->>>>>>> main
 ]
 
 MIDDLEWARE = [
@@ -97,12 +94,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-<<<<<<< HEAD
-=======
         'OPTIONS': {
             'min_length': 6,  # Change from 8 to 6
         }
->>>>>>> main
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -118,11 +112,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-<<<<<<< HEAD
 TIME_ZONE = 'America/Regina'
-=======
-TIME_ZONE = 'UTC'
->>>>>>> main
 
 USE_I18N = True
 
