@@ -407,3 +407,156 @@ body {
         font-size: 1.2rem;
     }
 }
+.error-box {
+    border: 2px solid red !important;
+}
+.error-text {
+    color: red;
+}
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/*PASSWORD CHECKLIST*/
+
+.password-checklist {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 20px;
+    padding: 20px 24px;
+    margin-top: 12px;
+    margin-bottom: 15px;
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: hidden;
+    animation: slideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.password-checklist::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: rotate 15s linear infinite;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.checklist-title {
+    margin: 0 0 16px 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.password-checklist ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.password-checklist .requirement {
+    padding: 10px 16px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+}
+
+.password-checklist .requirement::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, rgba(72, 219, 251, 0.3), rgba(167, 243, 208, 0.3));
+    transition: width 0.5s ease;
+    border-radius: 10px;
+}
+
+.password-checklist .requirement.valid {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(167, 243, 208, 0.5);
+    transform: translateX(4px);
+    box-shadow: 0 4px 15px rgba(167, 243, 208, 0.3);
+}
+
+.password-checklist .requirement.valid::before {
+    width: 100%;
+}
+
+.check-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    font-weight: bold;
+    font-size: 16px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    position: relative;
+    z-index: 1;
+}
+
+.check-icon::before {
+    content: '○';
+    color: rgba(255, 255, 255, 0.5);
+    transition: all 0.3s ease;
+}
+
+.requirement.valid .check-icon {
+    background: linear-gradient(135deg, #48dbfb 0%, #a7f3d0 100%);
+    box-shadow: 0 0 20px rgba(72, 219, 251, 0.6);
+    transform: rotate(360deg) scale(1.1);
+}
+
+.requirement.valid .check-icon::before {
+    content: '●';
+    color: #1e3a8a;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.password-checklist .requirement:last-child {
+    margin-bottom: 0;
+}

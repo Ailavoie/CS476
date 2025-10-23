@@ -21,5 +21,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
     path("accounts/", include("accounts.urls", namespace='accounts')),
+<<<<<<< HEAD
     path("posts/", include("posts.urls")),
+=======
+>>>>>>> main
 ]

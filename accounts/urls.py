@@ -14,4 +14,5 @@ urlpatterns = [
     path("therapist/requests/<int:pk>/accept/", views.AcceptConnectionRequestView.as_view(), name="accept_request"),
     path("therapist/requests/<int:pk>/reject/", views.RejectConnectionRequestView.as_view(), name="reject_request"),
     path("therapists/", views.TherapistListView.as_view(), name="therapist_list"),
+    path("ajax/load_provinces/", views.load_provinces, name="ajax_load_provinces"),
 ]

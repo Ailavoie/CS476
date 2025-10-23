@@ -5,6 +5,10 @@
     <link rel="stylesheet" href="{% static 'accounts/css/style.css' %}">
 {% endblock %}
 
+{% block extra_js %}
+    <script src="{% static 'accounts/js/eventHandlers.js' %}"></script>
+    <script src="{% static 'accounts/js/login.js' %}"></script> 
+{% endblock %}
 {% block content %}
 <div class="container register-container">
     <div class="register-card">

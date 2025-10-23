@@ -3,10 +3,18 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'accounts/css/style.css' %}">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'accounts/js/eventHandlers.js' %}"></script>
+    <script src="{% static 'accounts/js/register.js' %}"></script> 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 {% endblock %}
 
 {% block content %}
-<div class="container register-container">
+<div class="container register-container" data-initial-tab="{{ initial_tab }}">
     <div class="register-card">
         <h2 id="form-title">Register as a Client</h2>
 
@@ -15,7 +23,7 @@
             <button class="tab-button" data-tab="therapist">Therapist</button>
         </div>
 
-        <form method="post" class="register-form">
+        <form id="signup-form" method="post" class="register-form">
             {% csrf_token %}
             <input type="hidden" id="account_type" name="account_type" value="client">
 
@@ -42,7 +50,7 @@
             </div>
 
             <!-- ----------- Therapist Form ----------- -->
-            <div id="therapist-form" class="tab-content">
+            <div id="therapist-form" class="tab-content" {% if initial_tab == 'therapist' %}active{% endif %}>
                 {% for field in therapist_form %}
                     <div class="form-group">
                         <label for="{{ field.id_for_label }}">
@@ -70,6 +78,6 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
-    <script src="{% static 'accounts/js/register.js' %}"></script>
-{% endblock %}
+
+
+
