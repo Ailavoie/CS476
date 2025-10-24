@@ -3,7 +3,7 @@ from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from .models import Post
 from .forms import PostForm
-from .observers import Subject, Observer, ConcreteSubject, EmailNotifier
+from .observers import Subject, Observer, ConcreteSubject, EmailNotifier, PostNotification
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_protect
 
@@ -18,10 +18,15 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.client = self.request.user.client_profile
         print(f"In post create view valid")
+
         concrete_subject = ConcreteSubject(form)
         concrete_observer = EmailNotifier()
         concrete_subject.attach(concrete_observer)
+        concrete_observer_notification = PostNotification()
+        concrete_subject.attach(concrete_observer_notification)
         concrete_subject.notify()
+        concrete_subject.notify()
+
         print(f"notfying observers")
         return super().form_valid(form)
 
