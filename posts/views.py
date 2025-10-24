@@ -25,11 +25,10 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         concrete_observer_notification = PostNotification()
         concrete_subject.attach(concrete_observer_notification)
         concrete_subject.notify()
-        concrete_subject.notify()
-
+        
         print(f"notfying observers")
-        return super().form_valid(form)
 
+        return super().form_valid(form)
 
 class PostListView(LoginRequiredMixin, ListView):
     model = Post

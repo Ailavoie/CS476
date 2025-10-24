@@ -80,7 +80,7 @@ class EmailNotifier(Observer):
                 else:
                     send_mail(
                         subject="New Client Mindlink journal created",
-                        message=f"Dear {therapist_name}, your client {client_name} created a new post at {created_at}. Log into Mindlink to view your client's journal entry",
+                        message=f"Dear {therapist_name}, your client {client_name} created a new post. Log into Mindlink to view your client's journal entry",
                         from_email='noreply@example.com',
                         recipient_list=[therapist_email],
                         fail_silently=False,
