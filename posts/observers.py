@@ -54,6 +54,8 @@ class ConcreteSubject(Subject):
             for observer in self._observers:
                  observer.update(self)
 
+        def set_model(self, value) -> None:
+            self.model = value
 
 class Observer(ABC):
     @abstractmethod
@@ -62,7 +64,7 @@ class Observer(ABC):
         Receive update from subject.
         """
         pass
-    
+
 class EmailNotifier(Observer):
     def update(self, subject: Subject) -> None:
                 print(f"sending post email:")
@@ -71,13 +73,14 @@ class EmailNotifier(Observer):
                 client = subject.model.instance.client
                 created_at = subject.model.instance.created_at
                 client_name = f"{client.first_name} {client.last_name}"
-                therapist_name = f"{client.therapist.first_name} {client.therapist.last_name}"
-                therapist_email = client.therapist.user.email 
+                therapist = client.therapist if hasattr(client, 'therapist') else None
 
-                if therapist_email is None:
+                if therapist is None:
                     print(f"No therapist email found for client {client_name}. Email not sent.")
                     return
                 else:
+                    therapist_name = f"{client.therapist.first_name} {client.therapist.last_name}"
+                    therapist_email = client.therapist.user.email 
                     send_mail(
                         subject="New Client Mindlink journal created",
                         message=f"Dear {therapist_name}, your client {client_name} created a new post. Log into Mindlink to view your client's journal entry",
@@ -88,7 +91,11 @@ class EmailNotifier(Observer):
                     print(f"Email sent to {therapist_email} about new post creation.")
                     
 
-class PostNotification(Observer):
-    def update(self, subject: Subject) -> None:
-        print("PostNotification: Reacted to the event.")
-    
+class TherapistNewCommentNotification(Observer):
+     def update(self, subject: Subject) -> None:
+        print("TherapistNotification: Reacted to the event.")
+        post = subject.model
+        post.therapist_comment_notification = True
+        postcomment = post.therapist_comment_notification
+        print(f"TherapistNotification: Reacted to the event. {postcomment}")
+        post.save()

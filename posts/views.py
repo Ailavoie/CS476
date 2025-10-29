@@ -3,13 +3,13 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.views import View
-
 from accounts.models import ClientProfile
 from .models import Post
 from .forms import PostForm
-from .observers import Subject, Observer, ConcreteSubject, EmailNotifier, PostNotification
+from .observers import Subject, Observer, ConcreteSubject, EmailNotifier, TherapistNewCommentNotification
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_protect
+import threading
 
 class PostCreateView(LoginRequiredMixin, CreateView):
     model = Post
@@ -26,12 +26,9 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         concrete_subject = ConcreteSubject(form)
         concrete_observer = EmailNotifier()
         concrete_subject.attach(concrete_observer)
-        concrete_observer_notification = PostNotification()
-        concrete_subject.attach(concrete_observer_notification)
         concrete_subject.notify()
         
         print(f"notfying observers")
-
         return super().form_valid(form)
 
 class PostListView(LoginRequiredMixin, ListView):
@@ -42,6 +39,17 @@ class PostListView(LoginRequiredMixin, ListView):
 # Override get_queryset to filter posts by logged in user
     def get_queryset(self):
         return Post.objects.filter(client=self.request.user.client_profile).order_by("-created_at")
+    
+#Update notifications
+    def update_notifications(self):
+        posts = self.get_queryset()
+        for post in posts:
+            if post.therapist_comment_notification:
+                post.therapist_comment_notification = False
+                post.save()
+        return redirect('posts/list_posts.html')
+    
+
 
 class PostUpdateView(LoginRequiredMixin, UpdateView):
     model = Post
@@ -95,5 +103,17 @@ class AddCommentView(LoginRequiredMixin, View):
             commentary = request.POST.get("commentary", "")
             post.commentary = commentary
             post.save()
+            concrete_subject = ConcreteSubject(post)
+            concrete_observer = TherapistNewCommentNotification()
+            concrete_subject.attach(concrete_observer)
+            concrete_subject.notify()
+            concrete_subject.detach(concrete_observer)
 
         return redirect("posts:therapist_client_posts", client_id=post.client.id)
+
+class ClearNotificationsView(LoginRequiredMixin, View):
+    def post(self, request, post_id):
+        post = get_object_or_404(Post, id=post_id)
+        post.therapist_comment_notification = False
+        post.save()
+        return redirect("posts:list_posts")
