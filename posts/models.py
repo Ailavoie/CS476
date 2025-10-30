@@ -1,6 +1,7 @@
 from django.db import models
 from accounts.models import ClientProfile
 
+#post as abstract base class
 class Post(models.Model):
     client = models.ForeignKey(ClientProfile, on_delete=models.CASCADE, related_name="posts")
     text = models.TextField()
