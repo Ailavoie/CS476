@@ -7,24 +7,225 @@
 {% block extra_css %}
   {% load static %}
   <link rel="stylesheet" href="{% static 'posts/css/style.css' %}">
+  <style>
+    .form-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .cke {
+      width: 100% !important;
+    }
+    
+    .cke_contents {
+      width: 100% !important;
+    }
+    
+    .word-count-display {
+      margin-top: 15px;
+      padding: 12px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 8px;
+      font-size: 14px;
+      color: white;
+      display: inline-flex;
+      gap: 30px;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+    
+    .word-count-display .count-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .word-count-display strong {
+      font-weight: 600;
+      opacity: 0.9;
+    }
+    
+    .word-count-display .count-number {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    
+    .form-actions {
+      margin-top: 25px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    
+    .btn-primary {
+      padding: 12px 30px;
+      font-size: 16px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+    }
+    
+    .btn-secondary {
+      padding: 12px 30px;
+      font-size: 16px;
+      font-weight: 600;
+      background: #6c757d;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    
+    .btn-secondary:hover {
+      background: #5a6268;
+      text-decoration: none;
+    }
+    
+    .unsaved-warning {
+      display: none;
+      margin-top: 10px;
+      padding: 10px 15px;
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      border-radius: 4px;
+      color: #856404;
+      font-size: 14px;
+    }
+    
+    .unsaved-warning.show {
+      display: block;
+    }
+  </style>
 {% endblock %}
 
 {% block content %}
-<section class="new-post">  <!-- We use the same class to maintain consistency -->
+<section class="new-post">
   <div class="container">
     <div class="section-title">
-      <h2>Edit Post</h2>
-      <p>Edit your journal entry.</p>
+      <h2>Edit Journal Entry</h2>
+      <p>Update your thoughts and experiences.</p>
     </div>
-    <div class="form-container">  <!-- Form container with styles -->
-      <form method="post">
+    
+    <div class="form-container">
+      <form method="post" id="journalForm">
         {% csrf_token %}
-        {{ form.as_p }}  <!-- Renders the form as paragraphs -->
-        <button type="submit" class="btn btn-primary">
-          <i class="fas fa-save"></i> Save Changes
-        </button>
+        
+        <div class="form-group">
+          <label for="id_text">Your Journal Entry</label>
+          
+          {{ form.media }}
+          {{ form.text }}
+          
+          <div class="word-count-display">
+            <div class="count-item">
+              <i class="fas fa-font"></i>
+              <div>
+                <strong>Words</strong>
+                <div class="count-number" id="wordCount">0</div>
+              </div>
+            </div>
+            <div class="count-item">
+              <i class="fas fa-keyboard"></i>
+              <div>
+                <strong>Characters</strong>
+                <div class="count-number" id="charCount">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="unsaved-warning" id="unsavedWarning">
+          <i class="fas fa-exclamation-triangle"></i>
+          You have unsaved changes. Click "Save Changes" to update your entry.
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="publishBtn">
+            <i class="fas fa-save"></i> Save Changes
+          </button>
+          <a href="{% url 'posts:list_posts' %}" class="btn btn-secondary" id="backBtn">
+            <i class="fas fa-arrow-left"></i> Back to Posts
+          </a>
+        </div>
       </form>
     </div>
   </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    if (typeof CKEDITOR !== 'undefined') {
+      var editorInstance = null;
+      var hasUnsavedChanges = false;
+      
+      CKEDITOR.on('instanceReady', function(event) {
+        editorInstance = event.editor;
+        
+        function updateWordCount() {
+          if (!editorInstance) return;
+          
+          var data = editorInstance.getData();
+          var text = data.replace(/<[^>]*>/g, ' ')
+                         .replace(/&nbsp;/g, ' ')
+                         .replace(/\s+/g, ' ')
+                         .trim();
+          
+          var words = text.length > 0 ? text.split(/\s+/).filter(function(word) {
+            return word.length > 0;
+          }).length : 0;
+          
+          var chars = text.length;
+          
+          document.getElementById('wordCount').textContent = words;
+          document.getElementById('charCount').textContent = chars;
+        }
+        
+        editorInstance.on('change', function() {
+          updateWordCount();
+          hasUnsavedChanges = true;
+          document.getElementById('unsavedWarning').classList.add('show');
+        });
+        
+        editorInstance.on('key', function() { setTimeout(updateWordCount, 10); });
+        editorInstance.on('paste', function() { setTimeout(updateWordCount, 100); });
+        
+        updateWordCount();
+      });
+      
+      window.addEventListener('beforeunload', function(e) {
+        if (hasUnsavedChanges) {
+          e.preventDefault();
+          e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+          return e.returnValue;
+        }
+      });
+      
+      document.getElementById('journalForm').addEventListener('submit', function() {
+        hasUnsavedChanges = false;
+      });
+      
+      document.getElementById('backBtn').addEventListener('click', function(e) {
+        if (hasUnsavedChanges) {
+          if (!confirm('You have unsaved changes. Are you sure you want to leave?')) {
+            e.preventDefault();
+          }
+        }
+      });
+    }
+  </script>
 {% endblock %}
