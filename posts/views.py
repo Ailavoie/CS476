@@ -3,6 +3,11 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.views import View
+
+from collections import defaultdict
+from django.db.models.functions import TruncDate 
+
+
 from accounts.models import ClientProfile
 from .models import Post
 from .forms import PostForm
@@ -50,6 +55,36 @@ class PostListView(LoginRequiredMixin, ListView):
         return redirect('posts/list_posts.html')
     
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        all_posts = context['posts'] # The queryset from get_queryset()
+
+        # Group posts by date
+        posts_by_date = defaultdict(list)
+        
+        for post in all_posts:
+            # Format the date as 'October 19, 2025' for display
+            display_date = post.created_at.strftime('%B %d, %Y')
+            # Use the simple date 'YYYY-MM-DD' for JS element IDs and anchors
+            date_id = post.created_at.strftime('%Y-%m-%d')
+            
+            # Prepare data for the dashboard summary view
+            posts_by_date[display_date].append({
+                'id': post.pk,
+                'time': post.created_at.strftime('%I:%M %p'),
+                'raw_date': date_id,
+                # Show only the first 150 characters for the summary
+                'text_summary': post.text[:150] + '...' if len(post.text) > 150 else post.text,
+                'full_text': post.text,
+                'commentary': post.commentary,
+                'edit_url': reverse_lazy('posts:edit_post', kwargs={'pk': post.pk}),
+                'delete_url': reverse_lazy('posts:delete_post', kwargs={'pk': post.pk}),
+            })
+        
+        # Convert the defaultdict to a list of tuples for the template (preserving order)
+        context['grouped_posts'] = list(posts_by_date.items())
+        
+        return context
 
 class PostUpdateView(LoginRequiredMixin, UpdateView):
     model = Post
