@@ -144,3 +144,8 @@ EMAIL_PORT = 587
 
 EMAIL_HOST_USER = 'cs376testing@gmail.com'
 EMAIL_HOST_PASSWORD = 'sdak ylpz oosm evqx'
+
+AUTHENTICATION_BACKENDS = [
+    'accounts.backends.EmailBackend', 
+    'django.contrib.auth.backends.ModelBackend', 
+]

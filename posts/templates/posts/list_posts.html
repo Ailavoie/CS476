@@ -16,16 +16,6 @@
       <h2>My Posts</h2>
       <p>Manage and view your journal entries.</p>
     </div>
-    {% for post in posts %}
-      {% if post.therapist_comment_notification %}
-        <div class="alert alert-info" role="alert">
-          <form method="post" action="{% url 'posts:clear_notifications' post.id %}" class="comment-form">
-                {% csrf_token %}
-                  <i class="fas fa-info-circle"></i> Your therapist has added a comment to your post dated {{ post.created_at|date:"Y-m-d H:i" }}. <button type="submit" class="btn-sm btn-edit">clear</button>
-              </form>
-        </div>
-      {% endif %}
-    {% endfor %}
 
     <div class="posts-container">
       <a href="{% url 'posts:create_post' %}" class="btn btn-primary mb-20">

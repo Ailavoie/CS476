@@ -154,7 +154,7 @@ function validateSignup(event){
 		event.preventDefault();
     }
 }
-
+/*
 function validateLogin(event){
     let email = document.querySelector("#id_username");  
     let password = document.querySelector("#id_password");  
@@ -204,6 +204,7 @@ function validateLogin(event){
         event.preventDefault();
     }
 }
+*/
 //start handler functions
 
 function emailHandler(event){

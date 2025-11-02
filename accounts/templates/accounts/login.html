@@ -7,8 +7,9 @@
 
 {% block extra_js %}
     <script src="{% static 'accounts/js/eventHandlers.js' %}"></script>
-    <script src="{% static 'accounts/js/login.js' %}"></script> 
+    <script src="{% static 'accounts/js/login.js' %}"></script>
 {% endblock %}
+
 {% block content %}
 <div class="container register-container">
     <div class="register-card">
@@ -38,6 +39,25 @@
 
             <button type="submit" class="btn btn-primary">Login</button>
         </form>
+    </div>
+</div>
+
+<!-- 2FA Modal -->
+<div id="twoFactorModal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 class="modal-title">Enter Verification Code</h3>
+        <p class="info-message">We've sent a 6-digit code to your email. Please enter it below:</p>
+        <div id="errorMessage"></div>
+        <input 
+            type="text" 
+            id="codeInput" 
+            class="code-input" 
+            placeholder="000000" 
+            maxlength="6"
+            inputmode="numeric"
+            pattern="[0-9]*"
+        >
+        <button id="verifyBtn" class="btn btn-primary" style="width: 100%;">Verify Code</button>
     </div>
 </div>
 {% endblock %}
