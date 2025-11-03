@@ -1,28 +1,31 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.views.generic import ListView
 from django.views import View
-
 from collections import defaultdict
 from django.db.models.functions import TruncDate 
-
 from accounts.models import ClientProfile
 from .models import DailyPost, MoodPost
 from .factories import PostFactory
 from .observers import ConcreteSubject, EmailNotifier, TherapistNewCommentNotification
+from django.utils.timezone import localtime
+from .forms import DailyPostForm, MoodPostForm
 
-# ------------------- CREATE VIEW -------------------
+## ------------------- CREATE VIEW -------------------
 class PostCreateView(LoginRequiredMixin, View):
     template_name = "posts/create_post.html"
     success_url = reverse_lazy("posts:list_posts")
 
     def get(self, request, *args, **kwargs):
-        return render(request, self.template_name)
+        # Instantiates the form needed to load CKEditor assets via {{ form.media }}
+        form = DailyPostForm() 
+        return render(request, self.template_name, {'form': form})
 
     def post(self, request, *args, **kwargs):
         post_type = request.POST.get("post_type")
         factory = PostFactory()
+        
         post = factory.create_post(post_type, request.user.client_profile, request.POST)
         
         # Notify observers
@@ -32,14 +35,6 @@ class PostCreateView(LoginRequiredMixin, View):
         concrete_subject.notify()
 
         return redirect(self.success_url)
-
-
-from collections import defaultdict
-from django.urls import reverse_lazy
-from django.utils.timezone import localtime
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import ListView
-from .models import DailyPost, MoodPost
 
 # ------------------- LIST VIEW -------------------
 class PostListView(LoginRequiredMixin, ListView):
@@ -70,27 +65,24 @@ class PostListView(LoginRequiredMixin, ListView):
             display_date = local_created.strftime('%B %d, %Y')
             date_id = local_created.strftime('%Y-%m-%d')
 
+            # Determine post type for URL construction
+            post_type_url = post.post_type + 'post' 
+
             post_dict = {
                 'id': post.pk,
                 'time': local_created.strftime('%I:%M %p'),
                 'raw_date': date_id,
                 'commentary': getattr(post, 'commentary', ''),
-                'edit_url': reverse_lazy(
-                    'posts:edit_post',
-                    kwargs={'post_type': post.post_type + 'post', 'pk': post.pk}
-                ),
-                'delete_url': reverse_lazy(
-                    'posts:delete_post',
-                    kwargs={'post_type': post.post_type + 'post', 'pk': post.pk}
-                ),
+                'edit_url': reverse_lazy('posts:edit_post', kwargs={'post_type': post_type_url, 'pk': post.pk}),
+                'delete_url': reverse_lazy('posts:delete_post', kwargs={'post_type': post_type_url, 'pk': post.pk}),
             }
 
             if post.post_type == 'daily':
-                post_dict['text_summary'] = getattr(post, 'text', '')[:150] + '...' if getattr(post, 'text', '') else ''
+                post_dict['text_summary'] = getattr(post, 'text', '')[:150] + '...' if getattr(post, 'text', '') and len(getattr(post, 'text', '')) > 150 else getattr(post, 'text', '')
                 post_dict['full_text'] = getattr(post, 'text', '')
 
             elif post.post_type == 'mood':
-                emoji = self.EMOJI_MAP.get(post.mood_emoji, "❓")  # default to question mark if unknown
+                emoji = self.EMOJI_MAP.get(post.mood_emoji, "❓")
                 post_dict['text_summary'] = (
                     f"Mood: {emoji}  |  Energy: {post.energy_level}  |  "
                     f"Workout: {'Yes' if post.worked_out else 'No'}  |  "
@@ -121,9 +113,22 @@ class PostUpdateView(LoginRequiredMixin, View):
 
     def get(self, request, pk, post_type):
         post = self.get_object()
+        
+        # Determine and Instantiate the Form
+        if post_type == 'dailypost':
+            FormClass = DailyPostForm
+        elif post_type == 'moodpost':
+            FormClass = MoodPostForm
+        else:
+            return redirect(self.success_url) 
+            
+        # Instantiate the correct form class, pre-populated with the instance data
+        form = FormClass(instance=post)
+
         return render(request, self.template_name, {
             "post": post,
             "post_type": post_type,
+            "form": form,
         })
 
     def post(self, request, pk, post_type):

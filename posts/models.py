@@ -4,7 +4,7 @@ from ckeditor.fields import RichTextField
 from accounts.models import ClientProfile
 
 
-class BasePost(models.Model):
+class BasePost(models.Model):  # Abstract base class for posts
     POST_TYPE_CHOICES = [
         ('daily', 'Daily'),
         ('mood', 'Mood'),
@@ -29,7 +29,7 @@ class BasePost(models.Model):
         return f"{self.post_type.capitalize()} post by {self.client.user.email} on {self.created_at.strftime('%Y-%m-%d')}"
 
 
-class DailyPost(BasePost):
+class DailyPost(BasePost): # Daily journal entry)
     client = models.ForeignKey(
         ClientProfile,
         on_delete=models.CASCADE,
@@ -45,7 +45,7 @@ class DailyPost(BasePost):
         super().save(*args, **kwargs)
 
 
-class MoodPost(BasePost):
+class MoodPost(BasePost): # Mood journal entry
     client = models.ForeignKey(
         ClientProfile,
         on_delete=models.CASCADE,
