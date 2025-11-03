@@ -34,10 +34,23 @@ class PostCreateView(LoginRequiredMixin, View):
         return redirect(self.success_url)
 
 
+from collections import defaultdict
+from django.urls import reverse_lazy
+from django.utils.timezone import localtime
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import ListView
+from .models import DailyPost, MoodPost
+
 # ------------------- LIST VIEW -------------------
 class PostListView(LoginRequiredMixin, ListView):
     template_name = "posts/list_posts.html"
     context_object_name = "posts"
+
+    EMOJI_MAP = {
+        "happy": "😊",
+        "neutral": "😐",
+        "sad": "😞",
+    }
 
     def get_queryset(self):
         daily_posts = DailyPost.objects.filter(client=self.request.user.client_profile)
@@ -52,18 +65,45 @@ class PostListView(LoginRequiredMixin, ListView):
 
         posts_by_date = defaultdict(list)
         for post in all_posts:
-            display_date = post.created_at.strftime('%B %d, %Y')
-            date_id = post.created_at.strftime('%Y-%m-%d')
-            posts_by_date[display_date].append({
+            # Convert created_at to local time
+            local_created = localtime(post.created_at)
+            display_date = local_created.strftime('%B %d, %Y')
+            date_id = local_created.strftime('%Y-%m-%d')
+
+            post_dict = {
                 'id': post.pk,
-                'time': post.created_at.strftime('%I:%M %p'),
+                'time': local_created.strftime('%I:%M %p'),
                 'raw_date': date_id,
-                'text_summary': getattr(post, 'text', '')[:150] + '...' if getattr(post, 'text', '') else '',
-                'full_text': getattr(post, 'text', ''),
                 'commentary': getattr(post, 'commentary', ''),
-              'edit_url': reverse_lazy('posts:edit_post', kwargs={'pk': post.pk}),
-            'delete_url': reverse_lazy('posts:delete_post', kwargs={'pk': post.pk}),
-                })
+                'edit_url': reverse_lazy(
+                    'posts:edit_post',
+                    kwargs={'post_type': post.post_type + 'post', 'pk': post.pk}
+                ),
+                'delete_url': reverse_lazy(
+                    'posts:delete_post',
+                    kwargs={'post_type': post.post_type + 'post', 'pk': post.pk}
+                ),
+            }
+
+            if post.post_type == 'daily':
+                post_dict['text_summary'] = getattr(post, 'text', '')[:150] + '...' if getattr(post, 'text', '') else ''
+                post_dict['full_text'] = getattr(post, 'text', '')
+
+            elif post.post_type == 'mood':
+                emoji = self.EMOJI_MAP.get(post.mood_emoji, "❓")  # default to question mark if unknown
+                post_dict['text_summary'] = (
+                    f"Mood: {emoji}  |  Energy: {post.energy_level}  |  "
+                    f"Workout: {'Yes' if post.worked_out else 'No'}  |  "
+                    f"Trigger: {post.mood_trigger[:100]}{'...' if len(post.mood_trigger) > 100 else ''}"
+                )
+                post_dict['full_text'] = (
+                    f"Mood: {emoji}\n"
+                    f"Energy Level: {post.energy_level}\n"
+                    f"Worked Out: {'Yes' if post.worked_out else 'No'}\n"
+                    f"Mood Trigger: {post.mood_trigger}"
+                )
+
+            posts_by_date[display_date].append(post_dict)
 
         context['grouped_posts'] = list(posts_by_date.items())
         return context
@@ -81,7 +121,10 @@ class PostUpdateView(LoginRequiredMixin, View):
 
     def get(self, request, pk, post_type):
         post = self.get_object()
-        return render(request, self.template_name, {"post": post})
+        return render(request, self.template_name, {
+            "post": post,
+            "post_type": post_type,
+        })
 
     def post(self, request, pk, post_type):
         post = self.get_object()
