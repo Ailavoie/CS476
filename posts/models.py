@@ -55,6 +55,7 @@ class MoodPost(BasePost): # Mood journal entry
     energy_level = models.PositiveSmallIntegerField()
     worked_out = models.BooleanField(default=False)
     mood_trigger = models.TextField()
+    commentary = models.TextField(blank=True, null=True)
     post_type = models.CharField(max_length=20, default='mood', editable=False)
 
 

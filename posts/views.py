@@ -169,12 +169,22 @@ class TherapistClientListView(LoginRequiredMixin, ListView):
 class TherapistClientPostsView(LoginRequiredMixin, ListView):
     template_name = "posts/therapist_client_posts.html"
     context_object_name = "posts"
+    
+    # Define the Emoji Mapping for use in the context data
+    EMOJI_MAP = {
+        "happy": "😊",
+        "neutral": "😐",
+        "sad": "😞",
+    }
 
     def get_queryset(self):
         client_id = self.kwargs["client_id"]
+        # Ensure the therapist is correct (good security practice)
         therapist = self.request.user.therapist_profile
+        
         daily_posts = DailyPost.objects.filter(client__id=client_id, client__therapist=therapist)
         mood_posts = MoodPost.objects.filter(client__id=client_id, client__therapist=therapist)
+        
         all_posts = list(daily_posts) + list(mood_posts)
         return sorted(all_posts, key=lambda x: x.created_at, reverse=True)
 
@@ -182,8 +192,33 @@ class TherapistClientPostsView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         client_id = self.kwargs["client_id"]
         context["client"] = get_object_or_404(ClientProfile, id=client_id)
-        return context
+        
+        # --- CRITICAL ADDITION: Prepare posts for template ---
+        
+        processed_posts = []
+        for post in context['posts']:
+            # 1. Attach the simple post_type string ('daily' or 'mood')
+            #    (Using post.post_type is the preferred approach if available, but isinstance is reliable)
+            post_type_slug = 'daily' if isinstance(post, DailyPost) else 'mood'
+            post.post_type = post_type_slug
+            
+            # 2. Attach the emoji for Mood Posts
+            if post_type_slug == 'mood':
+                # Use getattr safely in case mood_emoji is missing (though it shouldn't be)
+                mood_value = getattr(post, 'mood_emoji', None)
+                post.emoji = self.EMOJI_MAP.get(mood_value, "❓")
+            else:
+                # Set a placeholder for Daily posts
+                post.emoji = None
+            
+            processed_posts.append(post)
 
+        # Replace the original queryset results with the decorated list
+        context['posts'] = processed_posts
+        
+        # ---------------------------------------------------
+        
+        return context
 
 # ------------------- COMMENTS -------------------
 class AddCommentView(LoginRequiredMixin, View):
@@ -208,7 +243,7 @@ class AddCommentView(LoginRequiredMixin, View):
 # ------------------- CLEAR NOTIFICATIONS -------------------
 class ClearNotificationsView(LoginRequiredMixin, View):
     def post(self, request, post_id, post_type):
-        model = DailyPost if post_type == "dailypost" else MoodPost
+        model = DailyPost if post_type == "daily" else MoodPost
         post = get_object_or_404(model, id=post_id)
         post.therapist_comment_notification = False
         post.save()
