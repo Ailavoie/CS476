@@ -505,16 +505,12 @@
       <!-- Stats -->
       <div class="dashboard-stats">
         <div class="stat-card">
-          <div class="stat-number">{{ posts.count }}</div>
+         <div class="stat-number">{{ posts|length }}</div>
           <div class="stat-label">Total Entries</div>
         </div>
         <div class="stat-card">
-          <div class="stat-number">{{ grouped_posts|length }}</div>
-          <div class="stat-label">Days Journaled</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">🔥 {% comment %} This streak logic should be handled in views.py if needed, using post count as a placeholder {% endcomment %}{{ posts.count }}</div>
-          <div class="stat-label">Streak</div>
+          <div class="stat-number">🔥 {{ grouped_posts|length }} </div>
+          <div class="stat-label">Days Journaled  </div>
         </div>
       </div>
     </div>
