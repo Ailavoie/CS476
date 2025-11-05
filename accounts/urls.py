@@ -17,4 +17,7 @@ urlpatterns = [
     path("therapists/", views.TherapistListView.as_view(), name="therapist_list"),
     path("ajax/load_provinces/", views.load_provinces, name="ajax_load_provinces"),
     path('verify-2fa/', views.verify_2fa, name='verify_2fa'), #used for 2FA
+    path('forgot-password/', views.forgot_password, name='forgot_password'),
+    path('reset-password/<str:token>/', views.reset_password_page, name='reset_password_page'),
+    path('reset-password/<str:token>/submit/', views.reset_password_submit, name='reset_password_submit'),
 ]

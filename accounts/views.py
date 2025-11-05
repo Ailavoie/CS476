@@ -41,7 +41,8 @@ class RegisterView(TemplateView):
             therapist_form = TherapistRegisterForm(prefix='therapist')
             if client_form.is_valid():
                 user = client_form.save()
-                login(request, user)
+                # Specify backend when logging in after registration
+                login(request, user, backend='accounts.backends.EmailBackend')
                 return redirect('core:home')
             else:
                 context = {'client_form': client_form, 'therapist_form': therapist_form}
@@ -52,7 +53,8 @@ class RegisterView(TemplateView):
             client_form = ClientRegisterForm(prefix='client')
             if therapist_form.is_valid():
                 user = therapist_form.save()
-                login(request, user)
+                # Specify backend when logging in after registration
+                login(request, user, backend='accounts.backends.EmailBackend')
                 return redirect('core:home')
             else:
                 context = {'client_form': client_form, 'therapist_form': therapist_form}
@@ -194,12 +196,17 @@ def login_view(request):
                 form = AuthenticationForm()
                 return render(request, 'accounts/login.html', {'form': form})
         
-        # Authenticate using email
+        # THIS IS THE CRITICAL FIX: Authenticate using email and password
+        # This checks if the credentials are valid against the database
         user = authenticate(request, username=email, password=password)
         
         print(f"Authenticated user: {user}")
         
+        # ONLY proceed if user credentials are valid
         if user is not None:
+            # User credentials are VALID - they exist in the database and password matches
+            print("✓ Authentication successful - user credentials are valid")
+            
             # Generate 2FA code
             code = TwoFactorCode.generate_code()
             TwoFactorCode.objects.create(user=user, code=code)
@@ -223,18 +230,35 @@ def login_view(request):
             request.session['pending_user_id'] = user.id
             
             print("RETURNING JSON: success=True, requires_2fa=True")
-            return JsonResponse({'success': True, 'requires_2fa': True})
-        else:
-            print("Authentication FAILED - returning error JSON")
+            
+            # MUST return JsonResponse for AJAX requests
             if is_ajax:
-                return JsonResponse({'success': False, 'error': 'Invalid email or password'})
+                return JsonResponse({'success': True, 'requires_2fa': True})
             else:
+                # Non-AJAX request (shouldn't happen with current JS, but handle it)
+                return render(request, 'accounts/login.html', {
+                    'show_2fa': True,
+                    'form': AuthenticationForm()
+                })
+        else:
+            # User credentials are INVALID - either email doesn't exist or password is wrong
+            print("✗ Authentication FAILED - invalid email or password")
+            
+            if is_ajax:
+                # Return JSON error for AJAX requests
+                return JsonResponse({
+                    'success': False, 
+                    'error': 'Invalid email or password'
+                })
+            else:
+                # Return template with error for non-AJAX requests
                 form = AuthenticationForm()
                 return render(request, 'accounts/login.html', {
                     'form': form,
                     'error': 'Invalid email or password'
                 })
     else:
+        # GET request - show login form
         print("GET request - rendering login form")
         form = AuthenticationForm()
     
@@ -242,58 +266,204 @@ def login_view(request):
 
 def verify_2fa(request):
     if request.method == 'POST':
-        data = json.loads(request.body)
-        code = data.get('code')
-        user_id = request.session.get('pending_user_id')
-        
-        print("="*50)
-        print("2FA VERIFICATION ATTEMPT")
-        print(f"Code entered: {code}")
-        print(f"User ID from session: {user_id}")
-        print("="*50)
-        
-        if not user_id:
-            print("ERROR: No pending_user_id in session")
-            return JsonResponse({'success': False, 'error': 'No pending authentication'})
-        
-        # Get the most recent unused code for this user
         try:
-            all_codes = TwoFactorCode.objects.filter(user_id=user_id).order_by('-created_at')
-            print(f"Found {all_codes.count()} total codes for user {user_id}")
-            for c in all_codes[:3]:  # Show last 3 codes
-                print(f"  Code: {c.code}, Used: {c.is_used}, Valid: {c.is_valid()}, Created: {c.created_at}")
+            data = json.loads(request.body)
+            code = data.get('code')
+            user_id = request.session.get('pending_user_id')
             
-            two_fa_code = TwoFactorCode.objects.filter(
-                user_id=user_id,
-                code=code,
-                is_used=False
-            ).latest('created_at')
+            print("="*50)
+            print("2FA VERIFICATION ATTEMPT")
+            print(f"Code entered: {code}")
+            print(f"User ID from session: {user_id}")
+            print("="*50)
             
-            print(f"Found matching code: {two_fa_code.code}")
-            print(f"Code is valid: {two_fa_code.is_valid()}")
+            if not user_id:
+                print("ERROR: No pending_user_id in session")
+                return JsonResponse({'success': False, 'error': 'No pending authentication'})
             
-            if two_fa_code.is_valid():
-                two_fa_code.is_used = True
-                two_fa_code.save()
+            # Get the most recent unused code for this user
+            try:
+                all_codes = TwoFactorCode.objects.filter(user_id=user_id).order_by('-created_at')
+                print(f"Found {all_codes.count()} total codes for user {user_id}")
+                for c in all_codes[:3]:  # Show last 3 codes
+                    print(f"  Code: {c.code}, Used: {c.is_used}, Valid: {c.is_valid()}, Created: {c.created_at}")
                 
-                # Log the user in - specify the backend
-                from django.contrib.auth import get_user_model
-                User = get_user_model()
-                user = User.objects.get(id=user_id)
+                two_fa_code = TwoFactorCode.objects.filter(
+                    user_id=user_id,
+                    code=code,
+                    is_used=False
+                ).latest('created_at')
                 
-                # Specify the backend explicitly
-                login(request, user, backend='accounts.backends.EmailBackend')
+                print(f"Found matching code: {two_fa_code.code}")
+                print(f"Code is valid: {two_fa_code.is_valid()}")
                 
-                # Clean up session
-                del request.session['pending_user_id']
-                
-                print("SUCCESS: User logged in")
-                return JsonResponse({'success': True})
-            else:
-                print("ERROR: Code expired")
-                return JsonResponse({'success': False, 'error': 'Code expired'})
-        except TwoFactorCode.DoesNotExist:
-            print("ERROR: Code not found in database")
-            return JsonResponse({'success': False, 'error': 'Invalid code'})
+                if two_fa_code.is_valid():
+                    two_fa_code.is_used = True
+                    two_fa_code.save()
+                    
+                    # Log the user in - specify the backend
+                    User = get_user_model()
+                    user = User.objects.get(id=user_id)
+                    
+                    # Specify the backend explicitly
+                    login(request, user, backend='accounts.backends.EmailBackend')
+                    
+                    # Clean up session
+                    del request.session['pending_user_id']
+                    
+                    print("SUCCESS: User logged in")
+                    return JsonResponse({'success': True})
+                else:
+                    print("ERROR: Code expired")
+                    return JsonResponse({'success': False, 'error': 'Code expired'})
+            except TwoFactorCode.DoesNotExist:
+                print("ERROR: Code not found in database")
+                return JsonResponse({'success': False, 'error': 'Invalid code'})
+        except json.JSONDecodeError:
+            print("ERROR: Invalid JSON in request body")
+            return JsonResponse({'success': False, 'error': 'Invalid request format'})
+        except Exception as e:
+            print(f"ERROR: Unexpected error: {e}")
+            return JsonResponse({'success': False, 'error': 'An error occurred'})
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+#password reset
+
+def forgot_password(request):
+    if request.method == 'POST':
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        
+        email = request.POST.get('email')
+        
+        print("="*50)
+        print("PASSWORD RESET REQUEST")
+        print(f"Email: {email}")
+        print("="*50)
+        
+        if not email:
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': 'Email is required'})
+        
+        # Check if user exists
+        User = get_user_model()
+        
+        try:
+            user = User.objects.get(email=email)
+            
+            # Generate reset token
+            token = TwoFactorCode.generate_token()
+            TwoFactorCode.objects.create(
+                user=user,
+                token=token,
+                code_type='password_reset'
+            )
+            
+            # Create reset link
+            reset_link = request.build_absolute_uri(
+                f'/accounts/reset-password/{token}/'
+            )
+            
+            # Send email
+            try:
+                send_mail(
+                    subject='Password Reset Request',
+                    message=f'Click the link below to reset your password:\n\n{reset_link}\n\nThis link will expire in 1 hour.\n\nIf you did not request this, please ignore this email.',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+                print(f"Reset link sent to {user.email}: {reset_link}")
+            except Exception as e:
+                print(f"Email sending failed: {e}")
+            
+            if is_ajax:
+                return JsonResponse({'success': True, 'message': 'Password reset link sent to your email'})
+        except User.DoesNotExist:
+            # Don't reveal if email exists or not (security)
+            if is_ajax:
+                return JsonResponse({'success': True, 'message': 'If that email exists, a reset link has been sent'})
     
     return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+
+def reset_password_page(request, token):
+    """Display the password reset form"""
+    # Verify token is valid
+    try:
+        reset_code = TwoFactorCode.objects.get(
+            token=token,
+            code_type='password_reset',
+            is_used=False
+        )
+        
+        if not reset_code.is_valid():
+            return render(request, 'accounts/reset_password.html', {
+                'error': 'This reset link has expired. Please request a new one.',
+                'token_valid': False
+            })
+        
+        return render(request, 'accounts/reset_password.html', {
+            'token': token,
+            'token_valid': True
+        })
+    except TwoFactorCode.DoesNotExist:
+        return render(request, 'accounts/reset_password.html', {
+            'error': 'Invalid reset link.',
+            'token_valid': False
+        })
+
+
+def reset_password_submit(request, token):
+    """Handle the password reset form submission"""
+    if request.method == 'POST':
+        new_password = request.POST.get('password')
+        confirm_password = request.POST.get('confirm_password')
+        
+        if new_password != confirm_password:
+            return render(request, 'accounts/reset_password.html', {
+                'token': token,
+                'token_valid': True,
+                'error': 'Passwords do not match'
+            })
+        
+        # Validate password strength (reuse your existing validation)
+        if len(new_password) < 6:
+            return render(request, 'accounts/reset_password.html', {
+                'token': token,
+                'token_valid': True,
+                'error': 'Password must be at least 6 characters'
+            })
+        
+        try:
+            reset_code = TwoFactorCode.objects.get(
+                token=token,
+                code_type='password_reset',
+                is_used=False
+            )
+            
+            if not reset_code.is_valid():
+                return render(request, 'accounts/reset_password.html', {
+                    'error': 'This reset link has expired.',
+                    'token_valid': False
+                })
+            
+            # Update password
+            user = reset_code.user
+            user.set_password(new_password)
+            user.save()
+            
+            # Mark token as used
+            reset_code.is_used = True
+            reset_code.save()
+            
+            messages.success(request, 'Password reset successful! You can now log in.')
+            return redirect('accounts:login')
+            
+        except TwoFactorCode.DoesNotExist:
+            return render(request, 'accounts/reset_password.html', {
+                'error': 'Invalid reset link.',
+                'token_valid': False
+            })
+    
+    return redirect('accounts:login')

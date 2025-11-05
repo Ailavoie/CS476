@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 import random
 import string
+import secrets 
 
 COUNTRY_CHOICES = (
     ('', 'Select Country'), 
@@ -121,19 +122,33 @@ class ConnectionRequest(models.Model):
     def __str__(self):
         return f"{self.client} → {self.therapist} ({self.status})"
 
-#2FA
+#2FA and password reset
 
 class TwoFactorCode(models.Model):
+    CODE_TYPE_CHOICES = [
+        ('2fa', 'Two Factor Authentication'),
+        ('password_reset', 'Password Reset'),
+    ]
+    
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    code = models.CharField(max_length=6)
+    code = models.CharField(max_length=6, blank=True)
+    token = models.CharField(max_length=64, blank=True)  # For password reset links
+    code_type = models.CharField(max_length=20, choices=CODE_TYPE_CHOICES, default='2fa')
     created_at = models.DateTimeField(auto_now_add=True)
     is_used = models.BooleanField(default=False)
     
     def is_valid(self):
-        # Code expires after 10 minutes
-        expiry_time = self.created_at + timezone.timedelta(minutes=10)
+        # Code expires after 10 minutes for 2FA, 1 hour for password reset
+        if self.code_type == '2fa':
+            expiry_time = self.created_at + timezone.timedelta(minutes=10)
+        else:
+            expiry_time = self.created_at + timezone.timedelta(hours=1)
         return not self.is_used and timezone.now() < expiry_time
     
     @staticmethod
     def generate_code():
         return ''.join(random.choices(string.digits, k=6))
+    
+    @staticmethod
+    def generate_token():
+        return secrets.token_urlsafe(32)

@@ -15,7 +15,7 @@
     <div class="register-card">
         <h2 class="form-title">Login</h2>
 
-        <form method="post" class="register-form">
+        <form id="login-form" method="post" class="register-form">
             {% csrf_token %}
 
             {% if form.errors %}
@@ -39,6 +39,8 @@
 
             <button type="submit" class="btn btn-primary">Login</button>
         </form>
+        
+        <button type="button" id="forgotPasswordBtn" class="btn btn-secondary" style="width: 100%; margin-top: 15px;">Forgot Password?</button>
     </div>
 </div>
 
@@ -58,6 +60,24 @@
             pattern="[0-9]*"
         >
         <button id="verifyBtn" class="btn btn-primary" style="width: 100%;">Verify Code</button>
+    </div>
+</div>
+
+<!-- Forgot Password Modal -->
+<div id="forgotPasswordModal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 class="modal-title">Reset Password</h3>
+        <p class="info-message">Enter your email address and we'll send you a link to reset your password:</p>
+        <div id="forgotPasswordError"></div>
+        <input 
+            type="email" 
+            id="resetEmailInput" 
+            class="code-input" 
+            placeholder="your@email.com" 
+            style="font-size: 1rem; letter-spacing: normal; text-align: left;"
+        >
+        <button id="sendResetBtn" class="btn btn-primary" style="width: 100%; margin-bottom: 10px;">Send Reset Link</button>
+        <button id="cancelResetBtn" class="btn btn-secondary" style="width: 100%;">Cancel</button>
     </div>
 </div>
 {% endblock %}
