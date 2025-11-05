@@ -1,24 +1,211 @@
 {% extends "base.html" %}
+
+{% block title %}Mindlink - Therapist Dashboard{% endblock %}
+
+{% block extra_css %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'posts/css/style.css' %}">
+<style>
+  /* Gradient background and overall layout */
+  .therapist-dashboard {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 50px 0;
+  }
+
+  .dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  /* Header card */
+  .dashboard-header {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    margin-bottom: 40px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+
+  .dashboard-header h2 {
+    font-size: 36px;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 10px;
+  }
+
+  .dashboard-header p {
+    color: #718096;
+    font-size: 16px;
+  }
+
+  /* Grid layout for cards */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 30px;
+  }
+
+  .dashboard-card {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s, box-shadow 0.3s;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  }
+
+  .dashboard-card h4 {
+    font-size: 22px;
+    color: #2d3748;
+    font-weight: 700;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dashboard-card p {
+    color: #718096;
+    font-size: 15px;
+    line-height: 1.5;
+    flex-grow: 1;
+    margin-bottom: 20px;
+  }
+
+  /* Buttons styled consistently with list_posts.html */
+  .dashboard-card .btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(45deg, #5a6edc, #6a3fa4);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(102, 126, 234, 0.3);
+  }
+
+  .btn-success {
+    background: linear-gradient(45deg, #48bb78, #38a169);
+  }
+
+  .btn-success:hover {
+    background: linear-gradient(45deg, #38a169, #2f855a);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(72, 187, 120, 0.3);
+  }
+
+  .btn-warning {
+    background: linear-gradient(45deg, #f6ad55, #dd6b20);
+  }
+
+  .btn-warning:hover {
+    background: linear-gradient(45deg, #ed8936, #c05621);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(237, 137, 54, 0.3);
+  }
+
+  /* Icon styling for each section */
+  .dashboard-icon {
+    font-size: 28px;
+    color: #667eea;
+    margin-right: 8px;
+  }
+
+  /* Connection code card */
+  .connection-code-box {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    text-align: center;
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    user-select: all;
+    transition: transform 0.2s;
+  }
+
+  .connection-code-box:hover {
+    transform: scale(1.03);
+  }
+
+  @media (max-width: 768px) {
+    .dashboard-header h2 {
+      font-size: 28px;
+    }
+    .dashboard-card {
+      padding: 25px;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-  <h2>Welcome, Dr. {{ user.username }} 👋 (Therapist)</h2>
+<section class="therapist-dashboard">
+  <div class="dashboard-container">
 
-  <div class="card mt-3 p-3 shadow-sm">
-    <h4>Authorized Clients</h4>
-    <p>View and manage journals of your connected clients.</p>
-    <a href="#" class="btn btn-primary">👥 View My Clients</a>
-  </div>
+    <!-- Header -->
+    <div class="dashboard-header">
+      <h2>Welcome, Dr. {{ user.first_name|default:user.email }} 👋</h2>
+      <p>Your central hub to manage clients, journals, and feedback.</p>
+    </div>
 
-  <div class="card mt-4 p-3 shadow-sm">
-    <h4>Client Journals</h4>
-    <p>Access journal entries and provide feedback.</p>
-    <a href="#" class="btn btn-success">📓 Review Journals</a>
-  </div>
+    <!-- Grid with three interactive cards -->
+    <div class="dashboard-grid">
 
-  <div class="card mt-4 p-3 shadow-sm">
-    <h4>Notifications</h4>
-    <p>Get notified when a client submits a new journal entry.</p>
-    <a href="#" class="btn btn-warning">🔔 View Notifications</a>
+      <!-- Authorized Clients -->
+      <div class="dashboard-card">
+        <h4><i class="fas fa-users dashboard-icon"></i>Authorized Clients</h4>
+        <p>View and manage journals of your connected clients.</p>
+        <a href="{% url 'posts:therapist_clients' %}" class="btn-action btn-primary">
+          <i class="fas fa-user-friends"></i> View My Clients
+        </a>
+      </div>
+
+      <!-- Connection Code -->
+      <div class="dashboard-card">
+        <h4><i class="fas fa-link dashboard-icon"></i>Connection Code</h4>
+        <p>Share this code with clients so they can connect with you.</p>
+        <div class="connection-code-box">
+          {{ user.therapist_profile.connection_code }}
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="dashboard-card">
+        <h4><i class="fas fa-bell dashboard-icon"></i>Notifications</h4>
+        <p>Get notified when a client submits a new journal entry or update.</p>
+        <a href="#" class="btn-action btn-warning">
+          <i class="fas fa-bell"></i> View Notifications
+        </a>
+      </div>
+
+    </div>
   </div>
-</div>
+</section>
 {% endblock %}

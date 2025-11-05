@@ -1,31 +1,208 @@
 {% extends "base.html" %}
+
+{% block title %}Mindlink - Client Dashboard{% endblock %}
+
+{% block extra_css %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'posts/css/style.css' %}">
+<style>
+  /* Background and container */
+  .client-dashboard {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 50px 0;
+  }
+
+  .dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  /* Header */
+  .dashboard-header {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    margin-bottom: 40px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+
+  .dashboard-header h2 {
+    font-size: 36px;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 10px;
+  }
+
+  .dashboard-header p {
+    color: #718096;
+    font-size: 16px;
+  }
+
+  /* Grid for feature cards */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 30px;
+  }
+
+  .dashboard-card {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s, box-shadow 0.3s;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  }
+
+  .dashboard-card h4 {
+    font-size: 22px;
+    color: #2d3748;
+    font-weight: 700;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dashboard-card p {
+    color: #718096;
+    font-size: 15px;
+    line-height: 1.5;
+    flex-grow: 1;
+    margin-bottom: 20px;
+  }
+
+  /* Buttons (consistent with list_posts and therapist_dashboard) */
+  .btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(45deg, #5a6edc, #6a3fa4);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(102, 126, 234, 0.3);
+  }
+
+  .btn-secondary {
+    background: linear-gradient(45deg, #63b3ed, #3182ce);
+  }
+
+  .btn-secondary:hover {
+    background: linear-gradient(45deg, #4299e1, #2b6cb0);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(99, 179, 237, 0.3);
+  }
+
+  .btn-success {
+    background: linear-gradient(45deg, #48bb78, #38a169);
+  }
+
+  .btn-success:hover {
+    background: linear-gradient(45deg, #38a169, #2f855a);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(72, 187, 120, 0.3);
+  }
+
+  .btn-info {
+    background: linear-gradient(45deg, #63b3ed, #3182ce);
+  }
+
+  .btn-info:hover {
+    background: linear-gradient(45deg, #4299e1, #2b6cb0);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(66, 153, 225, 0.3);
+  }
+
+  .btn-danger {
+    background: linear-gradient(45deg, #f56565, #e53e3e);
+  }
+
+  .btn-danger:hover {
+    background: linear-gradient(45deg, #e53e3e, #c53030);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(229, 62, 62, 0.3);
+  }
+
+  /* Icon color and spacing */
+  .dashboard-icon {
+    font-size: 26px;
+    color: #667eea;
+  }
+
+  @media (max-width: 768px) {
+    .dashboard-header h2 {
+      font-size: 28px;
+    }
+    .dashboard-card {
+      padding: 25px;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-  <h2>Welcome, {{ user.username }} 👋 (Client)</h2>
+<section class="client-dashboard">
+  <div class="dashboard-container">
 
-  <div class="card mt-3 p-3 shadow-sm">
-    <h4>Your Journal</h4>
-    <p>Create and manage your journal entries to track your thoughts and progress.</p>
-    <a href="#" class="btn btn-primary">📓 New Journal Entry</a>
-    <a href="#" class="btn btn-outline-secondary">📚 View My Entries</a>
-  </div>
+    <!-- Header -->
+    <div class="dashboard-header">
+      <h2>Welcome, {{ user.first_name }} 👋</h2>
+      <p>Track your progress, explore therapists, and manage your mental wellness journey.</p>
+    </div>
 
-  <div class="card mt-4 p-3 shadow-sm">
-    <h4>Suggested Therapists</h4>
-    <p>Find therapists with ratings and contact information.</p>
-    <a href="#" class="btn btn-success">👩‍⚕️ View Therapists</a>
-  </div>
+    <!-- Grid layout with cards -->
+    <div class="dashboard-grid">
 
-  <div class="card mt-4 p-3 shadow-sm">
-    <h4>Therapist Feedback</h4>
-    <p>Access comments and feedback from your connected therapist.</p>
-    <a href="#" class="btn btn-info">💬 View Feedback</a>
-  </div>
+      <!-- Journal Section -->
+      <div class="dashboard-card">
+        <h4><i class="fas fa-book dashboard-icon"></i>Your Journal</h4>
+        <p>Create and manage journal entries to express your thoughts and emotions.</p>
+        <div>
+          <a href="{% url 'posts:create_post' %}" class="btn-action btn-primary"><i class="fas fa-plus-circle"></i> New Journal Entry</a>
+          <a href="{% url 'posts:list_posts' %}" class="btn-action btn-secondary" style="margin-left: 10px;"><i class="fas fa-book-reader"></i> View Entries</a>
+        </div>
+      </div>
 
-  <div class="card mt-4 p-3 shadow-sm">
-    <h4>Mental Health Support</h4>
-    <p>If you need urgent help, here are mental health helplines.</p>
-    <a href="#" class="btn btn-danger">📞 Helplines</a>
+      <!-- Suggested Therapists -->
+      <div class="dashboard-card">
+        <h4><i class="fas fa-user-md dashboard-icon"></i>Suggested Therapists</h4>
+        <p>Find professional therapists that match your needs and preferences.</p>
+        <a href="{% url 'accounts:therapist_list' %}" class="btn-action btn-success"><i class="fas fa-users"></i> View Therapists</a>
+      </div>
+
+      <!-- Mental Health Support -->
+      <div class="dashboard-card">
+        <h4><i class="fas fa-heartbeat dashboard-icon"></i>Mental Health Support</h4>
+        <p>Find helplines and emergency contacts for mental health assistance.</p>
+        <a href="#" class="btn-action btn-danger"><i class="fas fa-phone-alt"></i> Helplines</a>
+      </div>
+
+    </div>
   </div>
-</div>
+</section>
 {% endblock %}
