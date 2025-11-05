@@ -230,7 +230,6 @@ const PostFactory = {
   create: function(type) {
     let elements = {};
     if (type === 'mood') {
-      // Destroy CKEditor instance when switching away from 'Daily'
       if (editorInstance) {
         editorInstance.destroy(true);
         editorInstance = null;
@@ -283,7 +282,7 @@ const PostFactory = {
   }
 };
 
-// ======== Event Listener for Post Type Change (Delay Kept) =========
+// ======== Event Listener for Post Type Change =========
 postTypeSelect.addEventListener('change', function() {
   const type = this.value;
   const elements = PostFactory.create(type);
