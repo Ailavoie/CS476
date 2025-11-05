@@ -6,11 +6,12 @@ from django.views import View
 from collections import defaultdict
 from django.db.models.functions import TruncDate 
 from accounts.models import ClientProfile
-from .models import DailyPost, MoodPost
+from .models import DailyPost, MoodPost, Comment
 from .factories import PostFactory
 from .observers import ConcreteSubject, EmailNotifier, TherapistNewCommentNotification
 from django.utils.timezone import localtime
 from .forms import DailyPostForm, MoodPostForm
+from django.contrib.contenttypes.models import ContentType
 
 ## ------------------- CREATE VIEW -------------------
 class PostCreateView(LoginRequiredMixin, View):
@@ -60,12 +61,10 @@ class PostListView(LoginRequiredMixin, ListView):
 
         posts_by_date = defaultdict(list)
         for post in all_posts:
-            # Convert created_at to local time
             local_created = localtime(post.created_at)
             display_date = local_created.strftime('%B %d, %Y')
             date_id = local_created.strftime('%Y-%m-%d')
 
-            # Determine post type for URL construction
             post_type_url = post.post_type + 'post' 
 
             post_dict = {
@@ -77,8 +76,22 @@ class PostListView(LoginRequiredMixin, ListView):
                 'delete_url': reverse_lazy('posts:delete_post', kwargs={'post_type': post_type_url, 'pk': post.pk}),
             }
 
+            if isinstance(post, DailyPost):
+                comments = post.comments.all().order_by('-created_at')
+            elif isinstance(post, MoodPost):
+                comments = post.comments.all().order_by('-created_at')
+            else:
+                comments = Comment.objects.none()
+
+
+            post_dict['comments'] = comments
+
             if post.post_type == 'daily':
-                post_dict['text_summary'] = getattr(post, 'text', '')[:150] + '...' if getattr(post, 'text', '') and len(getattr(post, 'text', '')) > 150 else getattr(post, 'text', '')
+                post_dict['text_summary'] = (
+                    getattr(post, 'text', '')[:150] + '...'
+                    if getattr(post, 'text', '') and len(getattr(post, 'text', '')) > 150
+                    else getattr(post, 'text', '')
+                )
                 post_dict['full_text'] = getattr(post, 'text', '')
 
             elif post.post_type == 'mood':
@@ -97,6 +110,7 @@ class PostListView(LoginRequiredMixin, ListView):
 
             posts_by_date[display_date].append(post_dict)
 
+
         context['grouped_posts'] = list(posts_by_date.items())
         return context
 
@@ -113,16 +127,11 @@ class PostUpdateView(LoginRequiredMixin, View):
 
     def get(self, request, pk, post_type):
         post = self.get_object()
-        
-        # Determine and Instantiate the Form
-        if post_type == 'dailypost':
-            FormClass = DailyPostForm
-        elif post_type == 'moodpost':
-            FormClass = MoodPostForm
-        else:
-            return redirect(self.success_url) 
-            
-        # Instantiate the correct form class, pre-populated with the instance data
+
+        if post.comments.exists():
+            return redirect(self.success_url)
+
+        FormClass = DailyPostForm if post_type == 'dailypost' else MoodPostForm
         form = FormClass(instance=post)
 
         return render(request, self.template_name, {
@@ -133,6 +142,10 @@ class PostUpdateView(LoginRequiredMixin, View):
 
     def post(self, request, pk, post_type):
         post = self.get_object()
+
+        if post.comments.exists():
+            return redirect(self.success_url)
+
         factory = PostFactory()
         factory.update_post(post, request.POST)
         return redirect(self.success_url)
@@ -227,10 +240,17 @@ class AddCommentView(LoginRequiredMixin, View):
         post = get_object_or_404(model, id=post_id)
 
         if hasattr(request.user, "therapist_profile") and post.client.therapist == request.user.therapist_profile:
-            commentary = request.POST.get("commentary", "")
-            post.commentary = commentary
-            post.save()
+            text = request.POST.get("commentary", "")
 
+            Comment.objects.create(
+                therapist=request.user.therapist_profile,
+                client=post.client,
+                daily_post=post if isinstance(post, DailyPost) else None,
+                mood_post=post if isinstance(post, MoodPost) else None,
+                text=text
+            )
+
+            # Notificar
             concrete_subject = ConcreteSubject(post)
             concrete_observer = TherapistNewCommentNotification()
             concrete_subject.attach(concrete_observer)

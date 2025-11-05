@@ -1,7 +1,7 @@
 # models.py
 from django.db import models
 from ckeditor.fields import RichTextField
-from accounts.models import ClientProfile
+from accounts.models import ClientProfile, TherapistProfile
 
 
 class BasePost(models.Model):  # Abstract base class for posts
@@ -36,7 +36,6 @@ class DailyPost(BasePost): # Daily journal entry)
         related_name="daily_posts"
     )
     text = RichTextField()
-    commentary = models.TextField(blank=True, null=True)
     post_type = models.CharField(max_length=20, default='daily', editable=False)
 
 
@@ -55,10 +54,44 @@ class MoodPost(BasePost): # Mood journal entry
     energy_level = models.PositiveSmallIntegerField()
     worked_out = models.BooleanField(default=False)
     mood_trigger = models.TextField()
-    commentary = models.TextField(blank=True, null=True)
     post_type = models.CharField(max_length=20, default='mood', editable=False)
 
 
     def save(self, *args, **kwargs):
         self.post_type = 'mood'
         super().save(*args, **kwargs)
+
+class Comment(models.Model):
+    therapist = models.ForeignKey(
+        TherapistProfile,
+        on_delete=models.CASCADE,
+        related_name="comments"
+    )
+    client = models.ForeignKey(
+        ClientProfile,
+        on_delete=models.CASCADE,
+        related_name="comments"
+    )
+    daily_post = models.ForeignKey(
+        "DailyPost",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="comments"
+    )
+    mood_post = models.ForeignKey(
+        "MoodPost",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="comments"
+    )
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        target = self.daily_post or self.mood_post
+        return f"Comment by {self.therapist.user.email} on {target}"

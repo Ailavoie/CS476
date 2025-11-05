@@ -8,7 +8,6 @@ class PostFactory:
             post = DailyPost.objects.create(
                 client=client,
                 text=data.get('text', ''),
-                commentary=data.get('commentary', '')
             )
         elif post_type == 'mood':
             post = MoodPost.objects.create(
@@ -29,7 +28,6 @@ class PostFactory:
         """
         if isinstance(post, DailyPost):
             post.text = data.get('text', post.text)
-            post.commentary = data.get('commentary', post.commentary)
 
         elif isinstance(post, MoodPost):
             post.mood_emoji = data.get('mood_emoji', post.mood_emoji)

@@ -553,27 +553,37 @@
                   <div class="post-full-content">
                     {{ post_data.full_text|safe }}
                   </div>
-                  
-                  {% if post_data.commentary %}
-                    <div class="therapist-feedback">
-                      <div class="therapist-feedback-title">
-                        <i class="fas fa-user-md"></i>
-                        Therapist Feedback
+
+                  {% if post_data.comments %}
+                    {% for comment in post_data.comments %}
+                      <div class="therapist-feedback">
+                        <div class="therapist-feedback-title">
+                          <i class="fas fa-user-md"></i>
+                          Therapist Feedback ({{ comment.created_at|date:"Y-m-d H:i" }})
+                        </div>
+                        <div>{{ comment.text }}</div>
                       </div>
-                      <div>{{ post_data.commentary }}</div>
-                    </div>
+                    {% endfor %}
                   {% endif %}
                 </div>
-                
+
                 <div class="post-actions">
                   <button class="btn-expand" onclick="togglePost(this)">
                     <i class="fas fa-expand-alt"></i>
                     <span class="expand-text">Read Full</span>
                   </button>
-                  <a href="{{ post_data.edit_url }}" class="btn-edit">
-                    <i class="fas fa-edit"></i>
-                    Edit
-                  </a>
+                  {% if post_data.comments|length > 0 %}
+                    <button class="btn-edit" style="opacity:0.6; cursor:not-allowed;" disabled title="Cannot edit after therapist comment">
+                      <i class="fas fa-lock"></i>
+                      Locked
+                    </button>
+                  {% else %}
+                    <a href="{{ post_data.edit_url }}" class="btn-edit">
+                      <i class="fas fa-edit"></i>
+                      Edit
+                    </a>
+                  {% endif %}
+
                   <button class="btn-delete-entry" 
                           data-micromodal-trigger="deleteModal" 
                           data-delete-url="{{ post_data.delete_url }}"

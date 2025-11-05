@@ -5,7 +5,7 @@ from .models import DailyPost, MoodPost
 class DailyPostForm(forms.ModelForm):
     class Meta:
         model = DailyPost
-        fields = ['text', 'commentary']
+        fields = ['text']
 
 class MoodPostForm(forms.ModelForm):
     MOOD_CHOICES = [
