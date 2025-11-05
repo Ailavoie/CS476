@@ -1,26 +1,43 @@
-// Password validation
-    const passwordInput = document.getElementById('id_password');
-    const checklist = document.querySelector('.password-checklist');
-    
-    if (passwordInput && checklist) {
-        passwordInput.addEventListener('input', function() {
-            validatePasswordReset(this.value, checklist);
-        });
-    }
-    
-    function validatePasswordReset(password, checklist) {
-        const requirements = [
-            { className: 'length-check', regex: /.{6,}/ },
-            { className: 'number-check', regex: /\d/ },
-            { className: 'special-check', regex: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/ }
-        ];
+const passwordInput = document.getElementById('id_password');
+const checklist = document.querySelector('.password-checklist');
+const form = passwordInput?.closest('form');
+
+if (passwordInput && checklist) {
+    passwordInput.addEventListener('input', function() {
+        validatePassword(this.value, checklist);
+    });
+}
+
+// Prevent form submission if password is invalid
+if (form && passwordInput) {
+    form.addEventListener('submit', function(e) {
+        const password = passwordInput.value;
         
-        requirements.forEach(function(req) {
-            const element = checklist.querySelector('.' + req.className);
-            if (req.regex.test(password)) {
-                element.classList.add('valid');
-            } else {
-                element.classList.remove('valid');
+        // Check all password requirements
+        const hasLength = /.{6,}/.test(password);
+        const hasNumber = /\d/.test(password);
+        const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+        
+        if (!hasLength || !hasNumber || !hasSpecial) {
+            e.preventDefault();
+            
+            // Show error message
+            const errorSpan = document.createElement("span");
+            errorSpan.classList.add("error-text");
+            errorSpan.classList.add("password-submit-error");
+            errorSpan.innerHTML = "Please meet all password requirements before submitting";
+            
+            // Remove any existing error
+            const existingError = form.querySelector('.password-submit-error');
+            if (existingError) {
+                existingError.remove();
             }
-        });
-    }
+            
+            // Add error below password field
+            passwordInput.parentNode.appendChild(errorSpan);
+            passwordInput.classList.add("error-box");
+            
+            return false;
+        }
+    });
+}
