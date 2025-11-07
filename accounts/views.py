@@ -15,7 +15,8 @@ from . import models # Ensure this import exists for load_provinces
 from datetime import date
 from django.views.generic import ListView
 from accounts.models import TherapistProfile
-
+import json
+from django.views.decorators.http import require_POST
 
 class RegisterView(TemplateView):
     template_name = "accounts/register.html"
@@ -139,6 +140,7 @@ class RejectConnectionRequestView(LoginRequiredMixin, View):
         return redirect("accounts:therapist_requests")
 
 
+
 @login_required
 def dashboard_view(request):
     user = request.user
@@ -160,3 +162,29 @@ def load_provinces(request):
         
     return JsonResponse([], safe=False)
     
+def update_info(request):
+    user = request.user
+
+    if hasattr(user, "client_profile"):
+        return render(request, "accounts/client_update_info.html", {"user": user})
+    elif hasattr(user, "therapist_profile"):
+        return render(request, "accounts/therapist_update_info.html", {"user": user})
+    else:
+        return redirect("accounts:register")
+    
+@login_required
+@require_POST
+def toggle_twofa(request):
+    user = request.user
+    if hasattr(user, "client_profile"):
+        client = request.user.client_profile
+        client.twofa = not client.twofa  # flip boolean
+        client.save()  # ✅ save the client_profile, not the user
+        print("Saved client 2FA:", client.twofa)
+        return JsonResponse({'twofa': client.twofa})
+    else:
+        therapist = request.user.therapist_profile
+        therapist.twofa = not therapist.twofa  # flip boolean
+        therapist.save()  # ✅ save the therapist_profile, not the user
+        print("Saved therapist 2FA:", therapist.twofa)
+        return JsonResponse({'twofa': therapist.twofa})

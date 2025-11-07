@@ -40,7 +40,6 @@ class User(AbstractUser):
         unique=False
     )
     email = models.EmailField(unique=True)
-
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
 
@@ -72,10 +71,9 @@ class ClientProfile(models.Model):
     province = models.CharField(max_length=100, blank=True, null=True)
     street = models.CharField(max_length=255, blank=True, null=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
-
     emergency_contact_name = models.CharField(max_length=100, blank=True, null=True)
     emergency_contact_phone = models.CharField(max_length=20, blank=True, null=True)
-
+    twofa = models.BooleanField(null = True, default=False)
     therapist = models.ForeignKey(
         "TherapistProfile",
         on_delete=models.SET_NULL,
@@ -109,6 +107,7 @@ class TherapistProfile(models.Model):
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     rating = models.FloatField(default=0.0)
 
+    twofa = models.BooleanField(null = True, default=False)
     connection_code = models.CharField(max_length=8, unique=True, blank=True)
 
     def save(self, *args, **kwargs):
