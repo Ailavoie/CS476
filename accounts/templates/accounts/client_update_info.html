@@ -162,6 +162,9 @@
       padding: 25px;
     }
   }
+
+  /* Toggle Switch CSS */
+
    .switch {
   position: relative;
   display: inline-block;
@@ -247,7 +250,7 @@ input:checked + .slider:before {
       <div class="dashboard-card">
         <h4><i class="fas fa-users dashboard-icon"></i>Personal Information</h4>
         <p>Click here to update personal information.</p>
-        <a href="{% url 'posts:therapist_clients' %}" class="btn-action btn-primary">
+        <a href="{% url 'accounts:update_user_info' %}" class="btn-action btn-primary">
           <i class="fas fa-user-friends"></i> Update Personal Info
         </a>
       </div>

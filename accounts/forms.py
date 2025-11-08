@@ -2,6 +2,10 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from .models import User, ClientProfile, TherapistProfile, COUNTRY_CHOICES
 from django.core.exceptions import ValidationError
+from django.contrib.auth import get_user_model
+from .models import REGION_DATA
+
+User = get_user_model()
 
 class BaseRegisterForm(UserCreationForm):
     date_of_birth = forms.DateField(required=True, widget=forms.DateInput(attrs={'type': 'date'}))
@@ -9,7 +13,7 @@ class BaseRegisterForm(UserCreationForm):
     last_name = forms.CharField(required=False, help_text="(Optional)")
     email = forms.EmailField(required=True)
     twofa = False
-    
+
     class Meta:
         model = User
         fields = ("email",)
@@ -175,3 +179,27 @@ class TherapistRegisterForm(BaseRegisterForm):
     
 class ConnectionRequestForm(forms.Form):
     therapist_code = forms.CharField(max_length=8, required=True, label="Therapist Code")
+
+class Update2FAForm(forms.Form):
+    twofa = forms.BooleanField(required=False, label="Enable Two-Factor Authentication")
+
+class UpdateUserInfoForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['email']
+        widgets = {
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+        }
+
+class UpdateClientInfoForm(forms.ModelForm):
+    country = forms.ChoiceField(choices=COUNTRY_CHOICES, required=True, widget=forms.Select(attrs={'id': 'id_therapist-country', 'class': 'country-select'}))
+    province = forms.ChoiceField(choices= REGION_DATA, required=False, widget=forms.Select(attrs={'id': 'id_client-province', 'class': 'province-select'}))
+
+    class Meta:
+        model = ClientProfile
+        fields = ['first_name', 'last_name', 'country', 'province', 'street', 'phone_number', 'emergency_contact_name', 'emergency_contact_phone']
+    
+    # def __init__(self, *args, **kwargs):
+    #    super().__init__(*args, **kwargs)
+    #    country = self.instance.country
+    #   self.fields['province'].choices = REGION_DATA[country]

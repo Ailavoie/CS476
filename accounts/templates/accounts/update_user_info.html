@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'accounts/css/style.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'accounts/js/eventHandlers.js' %}"></script>
+    <script src="{% static 'accounts/js/login.js' %}"></script> 
+{% endblock %}
+{% block content %}
+
+<div class="container register-container">
+    <div class="register-card">
+        <h2 class="form-title">Update Personal Information</h2>
+        <form method="post" class="register-form">
+            {% csrf_token %}
+            <form method="post" id="updateForm">
+    {% csrf_token %}
+    {{ user_form.as_p }}
+    {{ profile_form.as_p }}
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+  </form>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

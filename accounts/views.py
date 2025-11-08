@@ -7,7 +7,7 @@ from django.urls import reverse_lazy
 from django.views.generic import TemplateView
 from django.contrib import messages
 from accounts.models import ConnectionRequest, TherapistProfile
-from .forms import ClientRegisterForm, ConnectionRequestForm, TherapistRegisterForm
+from .forms import ClientRegisterForm, ConnectionRequestForm, TherapistRegisterForm, UpdateClientInfoForm, UpdateUserInfoForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
 from django.http import JsonResponse # Ensure this import is present
@@ -15,7 +15,6 @@ from . import models # Ensure this import exists for load_provinces
 from datetime import date
 from django.views.generic import ListView
 from accounts.models import TherapistProfile
-import json
 from django.views.decorators.http import require_POST
 
 class RegisterView(TemplateView):
@@ -188,3 +187,33 @@ def toggle_twofa(request):
         therapist.save()  # ✅ save the therapist_profile, not the user
         print("Saved therapist 2FA:", therapist.twofa)
         return JsonResponse({'twofa': therapist.twofa})
+    
+@login_required
+def update_user_info(request):
+    user = request.user
+    profile = user.client_profile if hasattr(user, "client_profile") else user.therapist_profile if hasattr(user, "therapist_profile") else None
+
+    if request.method == 'POST':
+        user_form = UpdateUserInfoForm(request.POST or None, instance=user)
+        if hasattr(user, "client_profile"):
+            profile_form = UpdateClientInfoForm(request.POST, instance=profile)
+        elif hasattr(user, "therapist_profile"):
+            profile_form = UpdateClientInfoForm(request.POST, instance=profile)
+        else:
+            return redirect("accounts:register")
+
+        if user_form.is_valid() and profile_form.is_valid()  :
+            user_form.save()
+            profile_form.save()
+            messages.success(request, "Your information has been updated.")
+            return redirect('accounts:update_info')
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        user_form = UpdateUserInfoForm(instance=user)
+        profile_form = UpdateClientInfoForm(instance=profile)
+
+        return render(request, "accounts/update_user_info.html", {
+            "user_form": user_form,
+            "profile_form": profile_form,
+            })

@@ -18,4 +18,5 @@ urlpatterns = [
     path("therapists/", views.TherapistListView.as_view(), name="therapist_list"),
     path("ajax/load_provinces/", views.load_provinces, name="ajax_load_provinces"),
     path('toggle-twofa/', views.toggle_twofa, name='toggle_twofa'),
+    path('update-user-info/', views.update_user_info, name='update_user_info'),
 ]
