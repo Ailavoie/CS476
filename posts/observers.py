@@ -2,11 +2,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List
 from django.core.mail import send_mail
-
 # Import new models
 from .models import DailyPost, MoodPost
 from accounts.models import ClientProfile
 
+# The <<inteface>> subject which will store methods for managing concrete observers. 
 class Subject(ABC):
     @abstractmethod
     def attach(self, observer: Observer) -> None:
@@ -20,7 +20,8 @@ class Subject(ABC):
     def notify(self) -> None:
         pass
 
-
+# Notifies observers when a change occurs to the subject.
+#The subject being passed in would be the Dailypost and Moodposts
 class ConcreteSubject(Subject):
     def __init__(self, model_instance: DailyPost | MoodPost):
         self.model = model_instance
@@ -38,16 +39,13 @@ class ConcreteSubject(Subject):
         for observer in self._observers:
             observer.update(self)
 
-    def set_model(self, value: DailyPost | MoodPost) -> None:
-        self.model = value
-
-
+# <<interface>> observer envokes the Push strategy for the observers
 class Observer(ABC):
     @abstractmethod
     def update(self, subject: Subject) -> None:
         pass
 
-
+#Concrete observer for notifying the therapist that an email is being sent out
 class EmailNotifier(Observer):
     def update(self, subject: Subject) -> None:
         post = subject.model
@@ -71,7 +69,7 @@ class EmailNotifier(Observer):
         )
         print(f"Email sent to {therapist_email} about new post creation.")
 
-
+# Concrete Observer for the Client when a therapist notification is available
 class TherapistNewCommentNotification(Observer):
     def update(self, subject: Subject) -> None:
         post = subject.model
