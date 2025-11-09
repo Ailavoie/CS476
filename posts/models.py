@@ -3,8 +3,9 @@ from django.db import models
 from ckeditor.fields import RichTextField
 from accounts.models import ClientProfile, TherapistProfile
 
-
-class BasePost(models.Model):  # Abstract base class for posts
+# Subject of observer pattern
+# Abstract base class for DailyPost and MoodPost models
+class BasePost(models.Model):  
     POST_TYPE_CHOICES = [
         ('daily', 'Daily'),
         ('mood', 'Mood'),
@@ -15,8 +16,7 @@ class BasePost(models.Model):  # Abstract base class for posts
         on_delete=models.CASCADE
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    therapist_comment_notification = models.BooleanField(default=False)
-    client_post_notification = models.BooleanField(default=True)
+    therapist_comment_notification = models.BooleanField(default=False) #Used by Concrete Observer in Observer pattern
     post_type = models.CharField(
         max_length=10,
         choices=POST_TYPE_CHOICES

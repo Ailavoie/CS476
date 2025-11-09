@@ -7,7 +7,7 @@ from django.urls import reverse_lazy
 from django.views.generic import TemplateView
 from django.contrib import messages
 from accounts.models import ConnectionRequest, TherapistProfile
-from .forms import ClientRegisterForm, ConnectionRequestForm, TherapistRegisterForm
+from .forms import ClientRegisterForm, ConnectionRequestForm, TherapistRegisterForm, UpdateClientInfoForm, UpdateUserInfoForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
 from django.http import JsonResponse # Ensure this import is present
@@ -15,7 +15,7 @@ from . import models # Ensure this import exists for load_provinces
 from datetime import date
 from django.views.generic import ListView
 from accounts.models import TherapistProfile
-
+from django.views.decorators.http import require_POST
 
 class RegisterView(TemplateView):
     template_name = "accounts/register.html"
@@ -243,3 +243,59 @@ def load_provinces(request):
         
     return JsonResponse([], safe=False)
     
+def update_info(request):
+    user = request.user
+
+    if hasattr(user, "client_profile"):
+        return render(request, "accounts/client_update_info.html", {"user": user})
+    elif hasattr(user, "therapist_profile"):
+        return render(request, "accounts/therapist_update_info.html", {"user": user})
+    else:
+        return redirect("accounts:register")
+    
+@login_required
+@require_POST
+def toggle_twofa(request):
+    user = request.user
+    if hasattr(user, "client_profile"):
+        client = request.user.client_profile
+        client.twofa = not client.twofa  # flip boolean
+        client.save()  # ✅ save the client_profile, not the user
+        print("Saved client 2FA:", client.twofa)
+        return JsonResponse({'twofa': client.twofa})
+    else:
+        therapist = request.user.therapist_profile
+        therapist.twofa = not therapist.twofa  # flip boolean
+        therapist.save()  # ✅ save the therapist_profile, not the user
+        print("Saved therapist 2FA:", therapist.twofa)
+        return JsonResponse({'twofa': therapist.twofa})
+    
+@login_required
+def update_user_info(request):
+    user = request.user
+    profile = user.client_profile if hasattr(user, "client_profile") else user.therapist_profile if hasattr(user, "therapist_profile") else None
+
+    if request.method == 'POST':
+        user_form = UpdateUserInfoForm(request.POST or None, instance=user)
+        if hasattr(user, "client_profile"):
+            profile_form = UpdateClientInfoForm(request.POST, instance=profile)
+        elif hasattr(user, "therapist_profile"):
+            profile_form = UpdateClientInfoForm(request.POST, instance=profile)
+        else:
+            return redirect("accounts:register")
+
+        if user_form.is_valid() and profile_form.is_valid()  :
+            user_form.save()
+            profile_form.save()
+            messages.success(request, "Your information has been updated.")
+            return redirect('accounts:update_info')
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        user_form = UpdateUserInfoForm(instance=user)
+        profile_form = UpdateClientInfoForm(instance=profile)
+
+        return render(request, "accounts/update_user_info.html", {
+            "user_form": user_form,
+            "profile_form": profile_form,
+            })

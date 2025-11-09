@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
+
+
 {% block title %}Mindlink - Therapist Dashboard{% endblock %}
+
+
 
 {% block extra_css %}
 {% load static %}
@@ -162,8 +166,74 @@
       padding: 25px;
     }
   }
+
+  .switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background: linear-gradient(135deg, #667eea, #764ba2)
+}
+
+input:focus + .slider {
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+.register-form .form-group {
+    margin-bottom: 20px;
+}
 </style>
 {% endblock %}
+
+
 
 {% block content %}
 <section class="therapist-dashboard">
@@ -172,40 +242,95 @@
     <!-- Header -->
     <div class="dashboard-header">
       <h2>Welcome, Dr. {{ user.first_name|default:user.email }} 👋</h2>
-      <p>Your central hub to manage clients, journals, and feedback.</p>
+      <p>Manage your personal information, update your password, and turn on Two-Factor Authentication.</p>
     </div>
 
     <!-- Grid with three interactive cards -->
     <div class="dashboard-grid">
 
-      <!-- Authorized Clients -->
+      <!-- update personal information -->
       <div class="dashboard-card">
-        <h4><i class="fas fa-users dashboard-icon"></i>Authorized Clients</h4>
-        <p>View and manage journals of your connected clients.</p>
+        <h4><i class="fas fa-users dashboard-icon"></i>Personal Information</h4>
+        <p>Click here to update personal information.</p>
         <a href="{% url 'posts:therapist_clients' %}" class="btn-action btn-primary">
-          <i class="fas fa-user-friends"></i> View My Clients
+          <i class="fas fa-user-friends"></i> Update Personal Info
         </a>
       </div>
 
-      <!-- Connection Code -->
+      <!-- Update Password -->
       <div class="dashboard-card">
-        <h4><i class="fas fa-link dashboard-icon"></i>Connection Code</h4>
-        <p>Share this code with clients so they can connect with you.</p>
-        <div class="connection-code-box">
-          {{ user.therapist_profile.connection_code }}
-        </div>
+        <h4><i class="fa-solid fa-lock"></i>Password</h4>
+        <p>Click here to update your password</p>
+        <a href="{% url 'accounts:change_password' %}" class="btn-action btn-primary">
+          <i class="fa-solid fa-lock-open"></i> Update Password
+        </a>
       </div>
 
-      <!-- Notifications -->
+      <!-- Turn on 2FA -->
       <div class="dashboard-card">
-        <h4><i class="fa-solid fa-face-smile"></i>Profile</h4>
-        <p>Click here to reset your password or update your personal information.</p>
-        <a href="{% url 'accounts:update_info' %}" class="btn-action btn-warning">
-          <i class="fas fa-bell"></i> Update Profile
-        </a>
+        <h4><i class="fas fa-link dashboard-icon"></i>Two-Factor Authentication</h4>
+        <p>Toggle below to turn 2FA on and off.</p>
+        <label class="switch">
+        <input type="checkbox" id="twofa-switch" {% if user.therapist_profile.twofa %}checked{% endif %}>
+        <span class="slider round"></span>
+        </label>
+        <p id="status-text">
+          {% if user.therapist_profile.twofa %}Enabled{% else %}Disabled{% endif %}
+        </p>
       </div>
 
     </div>
   </div>
 </section>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const toggle = document.getElementById("twofa-switch");
+
+  if (toggle) {
+    toggle.addEventListener("change", async () => {
+      console.log("Toggle clicked!");  // <---- TEST LOG
+
+      try {
+        const response = await fetch("{% url 'accounts:toggle_twofa' %}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie("csrftoken"),
+          },
+        });
+
+        console.log("Response status:", response.status);
+
+        if (response.ok) {
+          window.location.reload();
+        } else {
+          alert("Error updating 2FA status.");
+          toggle.checked = !toggle.checked;
+        }
+      } catch (error) {
+        console.error("Error toggling 2FA:", error);
+        toggle.checked = !toggle.checked;
+      }
+    });
+  }
+
+  // Helper function for CSRF
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith(name + "=")) {
+          cookieValue = decodeURIComponent(cookie.split("=")[1]);
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+});
+</script>
+
 {% endblock %}

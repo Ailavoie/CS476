@@ -220,7 +220,7 @@
 
     <!-- Header -->
     <div class="dashboard-header">
-      <h2>Welcome, {{ user.first_name }} 👋</h2>
+      <h2>Welcome, {{ user.client_profile.first_name }} 👋</h2>
       <p>Track your progress, explore therapists, and manage your mental wellness journey.</p>
     </div>
 
@@ -266,11 +266,10 @@
       {% endif %}
 
       <!-- Mental Health Support -->
-      <div class="dashboard-card">
-        <h4><i class="fas fa-heartbeat dashboard-icon"></i>Mental Health Support</h4>
-        <p>Find helplines and emergency contacts for mental health assistance.</p>
-        <a href="#" class="btn-action btn-danger">
-          <i class="fas fa-phone-alt"></i> Helplines
+     <div class="dashboard-card">
+        <h4><i class="fa-solid fa-face-smile"></i>Profile</h4>
+        <p>Click here to reset your password or update your personal information.</p>
+        <a href="{% url 'accounts:update_info' %}" class="btn-action btn-success"><i class="fa-solid fa-person"></i> Update Profile </a>
         </a>
       </div>
 
