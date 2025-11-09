@@ -197,7 +197,7 @@ class UpdateClientInfoForm(forms.ModelForm):
 
     class Meta:
         model = ClientProfile
-        fields = ['first_name', 'last_name', 'country', 'province', 'street', 'phone_number', 'emergency_contact_name', 'emergency_contact_phone']
+        fields = ['first_name', 'last_name', 'country', 'province', 'street', 'phone_number']
     
     # def __init__(self, *args, **kwargs):
     #    super().__init__(*args, **kwargs)
