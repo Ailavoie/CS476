@@ -11,7 +11,7 @@ from .factories import PostFactory
 from .observers import ConcreteSubject, EmailNotifier, TherapistNewCommentNotification
 from django.utils.timezone import localtime
 from .forms import DailyPostForm, MoodPostForm
-from django.contrib.contenttypes.models import ContentType
+from django.contrib import messages
 
 ## ------------------- CREATE VIEW -------------------
 class PostCreateView(LoginRequiredMixin, View):
@@ -232,6 +232,28 @@ class TherapistClientPostsView(LoginRequiredMixin, ListView):
         # ---------------------------------------------------
         
         return context
+    
+# ------------------- THERAPIST DISCONNECT CLIENT -------------------
+class TherapistDisconnectClientView(LoginRequiredMixin, View):
+    success_url = reverse_lazy("posts:therapist_clients")
+
+    def post(self, request, client_id):
+        therapist = request.user.therapist_profile
+        client = get_object_or_404(ClientProfile, id=client_id, therapist=therapist)
+
+        client.therapist = None
+        client.save()
+
+        from accounts.models import ConnectionRequest
+        ConnectionRequest.objects.filter(
+            client=client,
+            therapist=therapist,
+            status="accepted"
+        ).update(status="disconnected")
+
+        messages.success(request, f"You have disconnected from {client.first_name} {client.last_name}.")
+        return redirect(self.success_url)
+
 
 # ------------------- COMMENTS -------------------
 class AddCommentView(LoginRequiredMixin, View):
@@ -250,7 +272,6 @@ class AddCommentView(LoginRequiredMixin, View):
                 text=text
             )
 
-            # Notificar
             concrete_subject = ConcreteSubject(post)
             concrete_observer = TherapistNewCommentNotification()
             concrete_subject.attach(concrete_observer)
