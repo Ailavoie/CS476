@@ -82,7 +82,7 @@
     margin-bottom: 20px;
   }
 
-  /* Buttons (consistent with list_posts and therapist_dashboard) */
+  /* Buttons */
   .btn-action {
     display: inline-flex;
     align-items: center;
@@ -128,16 +128,6 @@
     box-shadow: 0 6px 15px rgba(72, 187, 120, 0.3);
   }
 
-  .btn-info {
-    background: linear-gradient(45deg, #63b3ed, #3182ce);
-  }
-
-  .btn-info:hover {
-    background: linear-gradient(45deg, #4299e1, #2b6cb0);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(66, 153, 225, 0.3);
-  }
-
   .btn-danger {
     background: linear-gradient(45deg, #f56565, #e53e3e);
   }
@@ -148,10 +138,69 @@
     box-shadow: 0 6px 15px rgba(229, 62, 62, 0.3);
   }
 
-  /* Icon color and spacing */
   .dashboard-icon {
     font-size: 26px;
     color: #667eea;
+  }
+
+  /* Modal styles */
+  .modal { display: none; }
+  .modal.is-open { display: block; }
+  .modal__overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .modal__container {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  }
+  .modal__header { margin-bottom: 20px; }
+  .modal__title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #2d3748;
+  }
+  .modal__close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    float: right;
+    color: #718096;
+  }
+  .modal__content {
+    margin-bottom: 30px;
+    color: #4a5568;
+    font-size: 16px;
+  }
+  .modal__footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .modal__btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .modal__btn-danger {
+    background: #f56565;
+    color: white;
+  }
+  .modal__btn-danger:hover {
+    background: #e53e3e;
   }
 
   @media (max-width: 768px) {
@@ -183,26 +232,93 @@
         <h4><i class="fas fa-book dashboard-icon"></i>Your Journal</h4>
         <p>Create and manage journal entries to express your thoughts and emotions.</p>
         <div>
-          <a href="{% url 'posts:create_post' %}" class="btn-action btn-primary"><i class="fas fa-plus-circle"></i> New Journal Entry</a>
-          <a href="{% url 'posts:list_posts' %}" class="btn-action btn-secondary" style="margin-left: 10px;"><i class="fas fa-book-reader"></i> View Entries</a>
+          <a href="{% url 'posts:create_post' %}" class="btn-action btn-primary">
+            <i class="fas fa-plus-circle"></i> New Journal Entry
+          </a>
+          <a href="{% url 'posts:list_posts' %}" class="btn-action btn-secondary" style="margin-left: 10px;">
+            <i class="fas fa-book-reader"></i> View Entries
+          </a>
         </div>
       </div>
 
-      <!-- Suggested Therapists -->
+      <!-- Therapist Section -->
+      {% if user.client_profile.therapist %}
+      <div class="dashboard-card">
+        <h4><i class="fas fa-user-md dashboard-icon"></i>My Therapist</h4>
+        <p>
+          You are connected with 
+          <strong>{{ user.client_profile.therapist.user.first_name }} {{ user.client_profile.therapist.user.last_name }}</strong>.
+        </p>
+        <button class="btn-action btn-danger"
+                data-micromodal-trigger="disconnectModal"
+                onclick="prepareDisconnect('{{ user.client_profile.therapist.id }}')">
+          <i class="fas fa-unlink"></i> Disconnect
+        </button>
+      </div>
+      {% else %}
       <div class="dashboard-card">
         <h4><i class="fas fa-user-md dashboard-icon"></i>Suggested Therapists</h4>
         <p>Find professional therapists that match your needs and preferences.</p>
-        <a href="{% url 'accounts:therapist_list' %}" class="btn-action btn-success"><i class="fas fa-users"></i> View Therapists</a>
+        <a href="{% url 'accounts:therapist_list' %}" class="btn-action btn-success">
+          <i class="fas fa-users"></i> View Therapists
+        </a>
       </div>
+      {% endif %}
 
       <!-- Mental Health Support -->
       <div class="dashboard-card">
         <h4><i class="fas fa-heartbeat dashboard-icon"></i>Mental Health Support</h4>
         <p>Find helplines and emergency contacts for mental health assistance.</p>
-        <a href="#" class="btn-action btn-danger"><i class="fas fa-phone-alt"></i> Helplines</a>
+        <a href="#" class="btn-action btn-danger">
+          <i class="fas fa-phone-alt"></i> Helplines
+        </a>
       </div>
 
     </div>
   </div>
 </section>
+
+<!-- Disconnect Confirmation Modal -->
+<div class="modal micromodal-slide" id="disconnectModal" aria-hidden="true">
+  <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+    <div class="modal__container" role="dialog" aria-modal="true">
+      <header class="modal__header">
+        <h2 class="modal__title">Disconnect from Therapist?</h2>
+        <button class="modal__close" aria-label="Close modal" data-micromodal-close>×</button>
+      </header>
+      <main class="modal__content">
+        <p>Are you sure you want to disconnect from your therapist?</p>
+        <p><strong>This action cannot be undone.</strong></p>
+      </main>
+      <footer class="modal__footer">
+        <form id="disconnectForm" method="post" action="">
+          {% csrf_token %}
+          <button type="submit" class="modal__btn modal__btn-danger">Yes, Disconnect</button>
+          <button type="button" class="modal__btn" data-micromodal-close>Cancel</button>
+        </form>
+      </footer>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="https://unpkg.com/micromodal/dist/micromodal.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    MicroModal.init({
+      openTrigger: 'data-micromodal-trigger',
+      closeTrigger: 'data-micromodal-close',
+      disableScroll: true,
+      disableFocus: true,
+      awaitCloseAnimation: true
+    });
+  });
+
+  function prepareDisconnect(therapistId) {
+    const form = document.getElementById('disconnectForm');
+    form.action = `/accounts/disconnect/${therapistId}/`;
+  }
+</script>
 {% endblock %}

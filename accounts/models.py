@@ -134,8 +134,8 @@ class ConnectionRequest(models.Model):
         related_name="received_requests"
     )
     status = models.CharField(
-        max_length=10,
-        choices=[("pending", "Pending"), ("accepted", "Accepted"), ("rejected", "Rejected")],
+        max_length=20,
+        choices=[("pending", "Pending"), ("accepted", "Accepted"), ("rejected", "Rejected"), ("disconnected", "Disconnected"),],
         default="pending"
     )
     created_at = models.DateTimeField(auto_now_add=True)

@@ -559,7 +559,8 @@
                       <div class="therapist-feedback">
                         <div class="therapist-feedback-title">
                           <i class="fas fa-user-md"></i>
-                          Therapist Feedback ({{ comment.created_at|date:"Y-m-d H:i" }})
+                          {{ comment.therapist.user.first_name }} {{ comment.therapist.user.last_name }}
+                          <span style="font-weight:400;">- {{ comment.created_at|date:"Y-m-d H:i" }}</span>
                         </div>
                         <div>{{ comment.text }}</div>
                       </div>

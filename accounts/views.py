@@ -73,35 +73,66 @@ class TherapistListView(ListView):
                 )
         return therapists
         
+from django.views.generic import FormView, ListView, View
+from django.shortcuts import redirect, get_object_or_404, render
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.urls import reverse_lazy
+from .models import ConnectionRequest, TherapistProfile
+from .forms import ConnectionRequestForm
+
 class SendConnectionRequestView(LoginRequiredMixin, FormView):
     template_name = "accounts/send_request.html"
     form_class = ConnectionRequestForm
-    success_url = reverse_lazy("accounts:client_dashboard")
+    success_url = reverse_lazy("accounts:send_connection_request")
+
+    def get_context_data(self, **kwargs):
+        """Add therapist info to context if user already connected."""
+        context = super().get_context_data(**kwargs)
+        client_profile = self.request.user.client_profile
+        context["has_therapist"] = bool(client_profile.therapist)
+        context["current_therapist"] = client_profile.therapist
+        return context
 
     def form_valid(self, form):
-        code = form.cleaned_data["therapist_code"].strip()
         client_profile = self.request.user.client_profile
+        code = form.cleaned_data["therapist_code"].strip()
 
         if client_profile.therapist:
-            messages.error(self.request, "You already have a therapist.")
+            messages.warning(
+                self.request,
+                "You are already connected with a therapist. Please disconnect before sending another request."
+            )
             return redirect(self.success_url)
 
-        therapist = get_object_or_404(TherapistProfile, connection_code=code)
+        therapist = TherapistProfile.objects.filter(connection_code=code).first()
+        if not therapist:
+            messages.error(self.request, "No therapist found with that code.")
+            return redirect(self.success_url)
 
         existing_request = ConnectionRequest.objects.filter(
             client=client_profile,
-            therapist=therapist,
-            status__in=["pending", "accepted"]
-        ).first()
+            therapist=therapist
+        ).exclude(status__in=["rejected", "disconnected"]).first()
 
         if existing_request:
-            messages.warning(self.request, "You already sent a request to this therapist.")
+            if existing_request.status == "pending":
+                messages.info(
+                    self.request,
+                    "You already sent a request to this therapist. Please wait for approval."
+                )
+            elif existing_request.status == "accepted":
+                messages.info(
+                    self.request,
+                    "You are already connected with this therapist."
+                )
             return redirect(self.success_url)
 
         ConnectionRequest.objects.create(client=client_profile, therapist=therapist)
-        messages.success(self.request, "Connection request sent!")
-        return super().form_valid(form)
-    
+        messages.success(self.request, "✅ Your connection request has been sent successfully!")
+        return redirect(self.success_url)
+
+
 class ConnectionRequestListView(LoginRequiredMixin, ListView):
     model = ConnectionRequest
     template_name = "accounts/therapist_requests.html"
@@ -109,12 +140,17 @@ class ConnectionRequestListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         therapist = self.request.user.therapist_profile
-        return ConnectionRequest.objects.filter(therapist=therapist, status="pending").order_by("-created_at")
+        return ConnectionRequest.objects.filter(
+            therapist=therapist, status="pending"
+        ).order_by("-created_at")
+
 
 class AcceptConnectionRequestView(LoginRequiredMixin, View):
     def post(self, request, pk):
         therapist = request.user.therapist_profile
-        connection_request = get_object_or_404(ConnectionRequest, pk=pk, therapist=therapist, status="pending")
+        connection_request = get_object_or_404(
+            ConnectionRequest, pk=pk, therapist=therapist, status="pending"
+        )
 
         client_profile = connection_request.client
         client_profile.therapist = therapist
@@ -123,14 +159,16 @@ class AcceptConnectionRequestView(LoginRequiredMixin, View):
         connection_request.status = "accepted"
         connection_request.save()
 
-        messages.success(request, f"You are now connected with {client_profile.first_name}.")
+        messages.success(request, f"You are now connected with {client_profile.user.first_name}.")
         return redirect("accounts:therapist_requests")
 
 
 class RejectConnectionRequestView(LoginRequiredMixin, View):
     def post(self, request, pk):
         therapist = request.user.therapist_profile
-        connection_request = get_object_or_404(ConnectionRequest, pk=pk, therapist=therapist, status="pending")
+        connection_request = get_object_or_404(
+            ConnectionRequest, pk=pk, therapist=therapist, status="pending"
+        )
 
         connection_request.status = "rejected"
         connection_request.save()
@@ -138,6 +176,45 @@ class RejectConnectionRequestView(LoginRequiredMixin, View):
         messages.info(request, "Request rejected.")
         return redirect("accounts:therapist_requests")
 
+
+class TherapistDisconnectView(LoginRequiredMixin, View):
+    """
+    Handles client disconnection from therapist.
+    If the request includes ?next=send-request, it redirects back there after disconnecting.
+    """
+    success_url = reverse_lazy("accounts:dashboard")
+
+    def get_object(self):
+        therapist_id = self.kwargs.get("therapist_id")
+        return get_object_or_404(TherapistProfile, id=therapist_id)
+
+    def post(self, request, therapist_id):
+        client_profile = request.user.client_profile
+        therapist = self.get_object()
+
+        next_page = request.GET.get("next")
+        if next_page == "send-request":
+            self.success_url = reverse_lazy("accounts:send_connection_request")
+
+        if not client_profile.therapist:
+            messages.error(request, "You are not currently connected with any therapist.")
+            return redirect(self.success_url)
+
+        if client_profile.therapist != therapist:
+            messages.error(request, "You are not connected with this therapist.")
+            return redirect(self.success_url)
+
+        client_profile.therapist = None
+        client_profile.save()
+
+        ConnectionRequest.objects.filter(
+            client=client_profile,
+            therapist=therapist,
+            status="accepted"
+        ).update(status="disconnected")
+
+        messages.success(request, "You have successfully disconnected from your therapist.")
+        return redirect(self.success_url)
 
 @login_required
 def dashboard_view(request):
