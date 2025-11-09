@@ -19,16 +19,21 @@
         <h2 id="form-title">Register as a Client</h2>
 
         <div class="tab-container">
-            <button class="tab-button active" data-tab="client">Client</button>
-            <button class="tab-button" data-tab="therapist">Therapist</button>
+            <button class="tab-button {% if initial_tab == 'client' %}active{% endif %}" data-tab="client">
+                Client
+            </button>
+            <button class="tab-button {% if initial_tab == 'therapist' %}active{% endif %}" data-tab="therapist">
+                Therapist
+            </button>
         </div>
+
 
         <form id="signup-form" method="post" class="register-form">
             {% csrf_token %}
             <input type="hidden" id="account_type" name="account_type" value="client">
 
             <!-- ----------- Client Form ----------- -->
-            <div id="client-form" class="tab-content active">
+            <div id="client-form" class="tab-content" {% if initial_tab == 'client' %}active{% endif %}>
                 {% for field in client_form %}
                     <div class="form-group">
                         <label for="{{ field.id_for_label }}">

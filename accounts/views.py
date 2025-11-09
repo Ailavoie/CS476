@@ -24,6 +24,7 @@ class RegisterView(TemplateView):
         context = super().get_context_data(**kwargs)
         context['client_form'] = ClientRegisterForm(prefix='client')
         context['therapist_form'] = TherapistRegisterForm(prefix='therapist')
+        context['initial_tab'] = kwargs.get('initial_tab', 'client')
         return context
 
     def post(self, request, *args, **kwargs):
@@ -37,7 +38,11 @@ class RegisterView(TemplateView):
                 login(request, user)
                 return redirect('core:home')
             else:
-                context = {'client_form': client_form, 'therapist_form': therapist_form}
+                context = {
+                    'client_form': client_form,
+                    'therapist_form': therapist_form,
+                    'initial_tab': 'client'
+                }
                 return render(request, self.template_name, context)
 
         elif account_type == 'therapist':
@@ -48,13 +53,22 @@ class RegisterView(TemplateView):
                 login(request, user)
                 return redirect('core:home')
             else:
-                context = {'client_form': client_form, 'therapist_form': therapist_form}
+                context = {
+                    'client_form': client_form,
+                    'therapist_form': therapist_form,
+                    'initial_tab': 'therapist'
+                }
                 return render(request, self.template_name, context)
 
         else:
             client_form = ClientRegisterForm(prefix='client')
             therapist_form = TherapistRegisterForm(prefix='therapist')
-            context = {'client_form': client_form, 'therapist_form': therapist_form, 'error': 'Please select an account type.'}
+            context = {
+                'client_form': client_form,
+                'therapist_form': therapist_form,
+                'initial_tab': 'client',
+                'error': 'Please select an account type.'
+            }
             return render(request, self.template_name, context)
 
 class TherapistListView(ListView):
@@ -72,14 +86,6 @@ class TherapistListView(ListView):
                     (today.month, today.day) < (t.date_of_birth.month, t.date_of_birth.day)
                 )
         return therapists
-        
-from django.views.generic import FormView, ListView, View
-from django.shortcuts import redirect, get_object_or_404, render
-from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
-from .models import ConnectionRequest, TherapistProfile
-from .forms import ConnectionRequestForm
 
 class SendConnectionRequestView(LoginRequiredMixin, FormView):
     template_name = "accounts/send_request.html"
