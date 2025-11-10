@@ -7,7 +7,7 @@ from django.urls import reverse_lazy
 from django.views.generic import TemplateView
 from django.contrib import messages
 from accounts.models import ConnectionRequest, TherapistProfile
-from .forms import ClientRegisterForm, ConnectionRequestForm, TherapistRegisterForm, UpdateClientInfoForm, UpdateUserInfoForm
+from .forms import ClientRegisterForm, ConnectionRequestForm, TherapistRegisterForm, UpdateClientInfoForm, UpdateUserInfoForm, UpdateTherapistInfoForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
 from django.http import JsonResponse # Ensure this import is present
@@ -280,7 +280,7 @@ def update_user_info(request):
         if hasattr(user, "client_profile"):
             profile_form = UpdateClientInfoForm(request.POST, instance=profile)
         elif hasattr(user, "therapist_profile"):
-            profile_form = UpdateClientInfoForm(request.POST, instance=profile)
+            profile_form = UpdateTherapistInfoForm(request.POST, instance=profile)
         else:
             return redirect("accounts:register")
 
@@ -293,7 +293,12 @@ def update_user_info(request):
             messages.error(request, "Please correct the errors below.")
     else:
         user_form = UpdateUserInfoForm(instance=user)
-        profile_form = UpdateClientInfoForm(instance=profile)
+        if hasattr(user, "client_profile"):
+            profile_form = UpdateClientInfoForm(instance=profile)
+        elif hasattr(user, "therapist_profile"):
+            profile_form = UpdateTherapistInfoForm(instance=profile)
+        else:
+            return redirect("accounts:register")
 
         return render(request, "accounts/update_user_info.html", {
             "user_form": user_form,

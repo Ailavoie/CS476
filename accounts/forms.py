@@ -197,9 +197,26 @@ class UpdateClientInfoForm(forms.ModelForm):
 
     class Meta:
         model = ClientProfile
-        fields = ['first_name', 'last_name', 'country', 'province', 'street', 'phone_number']
+        fields = ['first_name', 'last_name', 'country', 'province', 'street', 'phone_number', 'emergency_contact_name', 'emergency_contact_phone']
+        widgets = {
+            'first_name': forms.EmailInput(attrs={'class': 'form-control'}),
+        }
     
-    # def __init__(self, *args, **kwargs):
-    #    super().__init__(*args, **kwargs)
-    #    country = self.instance.country
-    #   self.fields['province'].choices = REGION_DATA[country]
+class UpdateTherapistInfoForm(forms.ModelForm):
+    country = forms.ChoiceField(choices=COUNTRY_CHOICES, required=True, widget=forms.Select(attrs={'id': 'id_therapist-country', 'class': 'country-select'}))
+    province = forms.ChoiceField(choices= REGION_DATA, required=False, widget=forms.Select(attrs={'id': 'id_client-province', 'class': 'province-select'}))
+    specialty = forms.MultipleChoiceField(choices=EXPERTISES, required=True, widget=forms.SelectMultiple(attrs={'class': 'multi-select-specialty'}))
+
+    class Meta:
+        model = TherapistProfile
+        fields = ['first_name', 'last_name', 'license_number', 'specialty', 'country', 'province', 'street', 'phone_number']
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        print("Initial specialties:", self.fields['specialty'].initial)
+        if self.instance and self.instance.specialty:
+            selected_specialties = [
+                s.strip() for s in self.instance.specialty.split(',') if s.strip()
+            ]
+            self.fields['specialty'].initial = selected_specialties
+      
