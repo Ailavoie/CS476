@@ -101,6 +101,21 @@ Mindlink - Edit Post
     transform: scale(1.2);
     box-shadow: 0 2px 6px rgba(78, 115, 223, 0.3);
   }
+
+  /* New styles for warnings */
+  .unsaved-warning, .validation-warning {
+    display: none;
+    color: #ff6b6b;
+    font-size: 0.9em;
+    margin-top: 10px;
+    padding: 8px 12px;
+    border: 1px solid #ff6b6b;
+    background-color: #ffeaea;
+    border-radius: 4px;
+  }
+  .unsaved-warning.show, .validation-warning.show {
+    display: block;
+  }
 </style>
 {% endblock %}
 
@@ -156,6 +171,15 @@ Mindlink - Edit Post
           </div>
         {% endif %}
 
+        <p id="unsavedWarning" class="unsaved-warning">
+          <i class="fas fa-exclamation-triangle"></i> You have unsaved changes.
+        </p>
+
+        <p id="validationWarning" class="validation-warning">
+          <i class="fas fa-exclamation-circle"></i>
+          <span id="validationMessage"></span>
+        </p>
+
         <button type="submit" class="btn btn-primary" style="margin-top: 20px;">
           <i class="fas fa-save"></i> Save Changes
         </button>
@@ -170,17 +194,158 @@ Mindlink - Edit Post
 {{ form.media }}
 
 <script>
+// ======== Unsaved Changes Global Flag =========
+let hasUnsavedChanges = false;
+window.addEventListener('beforeunload', function(e) {
+  if (hasUnsavedChanges) {
+    e.preventDefault();
+    e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+    return e.returnValue;
+  }
+});
+
+// ======== Global CKEDITOR INSTANCE =========
+let editorInstance = null;
+
+// ===== Helper: Show validation messages visually =====
+function showValidationMessage(msg) {
+  const warning = document.getElementById('validationWarning');
+  const messageEl = document.getElementById('validationMessage');
+  if (!warning || !messageEl) return;
+  messageEl.textContent = msg;
+  warning.classList.add('show');
+  // auto-hide after 3s
+  setTimeout(() => warning.classList.remove('show'), 3000);
+}
+
+// --- CKEditor Setup ---
+function setupCKEditor(textareaId) {
+  if (typeof CKEDITOR === 'undefined') {
+    console.error('CKEDITOR object is undefined. Check asset loading.');
+    return;
+  }
+  if (CKEDITOR.instances[textareaId]) CKEDITOR.instances[textareaId].destroy(true);
+  
+  CKEDITOR.replace(textareaId);
+
+  CKEDITOR.instances[textareaId].on('instanceReady', function(evt) {
+    editorInstance = evt.editor;
+
+    const updateWordCount = () => {
+      const content = editorInstance.getData();
+      const textOnly = content
+        .replace(/<[^>]*>/g, '')   // remove HTML tags
+        .replace(/&nbsp;/g, ' ')   // handle CKEditor non-breaking spaces
+        .trim();
+        
+      // Character count: exclude spaces, tabs, newlines
+      const chars = textOnly.replace(/[ \t\n\r]+/g, '').length;
+
+      // Word count: ignore blank segments, multiple spaces, newlines
+      const wordsArray = textOnly.split(/\s+/).filter(w => w.length > 0);
+      const words = wordsArray.length;
+      
+      const wordCountEl = document.getElementById('wordCount');
+      const charCountEl = document.getElementById('charCount');
+      if (wordCountEl) wordCountEl.textContent = words;
+      if (charCountEl) charCountEl.textContent = chars;
+    };
+
+    const handleUserChange = () => {
+        // Set unsaved changes flag ONLY on user input
+        hasUnsavedChanges = true;
+        const unsaved = document.getElementById('unsavedWarning');
+        if (unsaved) unsaved.classList.add('show');
+        updateWordCount();
+    }
+
+    // Initial count (does not set hasUnsavedChanges)
+    updateWordCount();
+    
+    // Listen for changes and set flag
+    // Note: We use 'key' and 'paste' to detect input earlier than 'change' (which fires on blur)
+    editorInstance.on('key', () => setTimeout(handleUserChange, 10)); 
+    editorInstance.on('paste', () => setTimeout(handleUserChange, 100)); 
+    // The 'change' event still acts as a good fallback
+    editorInstance.on('change', handleUserChange); 
+  });
+}
+
+// --- Mic Button Setup ---
+function setupMicButton() {
+  const micButton = document.getElementById('mic-button');
+  if (!micButton) return;
+
+  if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = new SpeechRecognition();
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.lang = 'en-US';
+    let isListening = false;
+
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++)
+        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+
+      if (finalTranscript && editorInstance) {
+        editorInstance.insertHtml(finalTranscript + ' ');
+        // Firing 'change' here will trigger the handleUserChange logic in CKEditor setup
+        editorInstance.fire('change');
+      }
+    };
+
+    recognition.onstart = () => {
+      micButton.textContent = 'Dictating... (Click to Stop)';
+      micButton.classList.add('btn-listening');
+      isListening = true;
+    };
+
+    recognition.onend = () => {
+      micButton.innerHTML = '<i class="fas fa-microphone"></i> Start Voice Input';
+      micButton.classList.remove('btn-listening');
+      isListening = false;
+    };
+
+    micButton.addEventListener('click', () => {
+      if (!editorInstance) return showValidationMessage("Editor not ready for voice input.");
+      isListening ? recognition.stop() : recognition.start();
+    });
+  } else {
+    micButton.style.display = 'none';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
   const postType = "{{ post_type|default:'' }}".toLowerCase();
-
-  // ✅ Mood Post emoji selector
+  const editForm = document.getElementById('editPostForm');
+  
+  // ✅ Mood Post emoji selector & unsaved tracking
   if (postType === "moodpost") {
     document.querySelectorAll('.emoji-option').forEach(el => {
       el.addEventListener('click', function() {
         document.querySelectorAll('.emoji-option').forEach(e => e.classList.remove('emoji-selected'));
         this.classList.add('emoji-selected');
         document.getElementById('moodEmoji').value = this.dataset.value;
+
+        // Set unsaved changes flag
+        hasUnsavedChanges = true;
+        document.getElementById('unsavedWarning').classList.add('show');
       });
+    });
+    
+    // Track changes on other input fields for moodpost
+    editForm.querySelectorAll('.form-control, textarea').forEach(input => {
+        // Only trigger on change/input events, not initial load
+        input.addEventListener('change', function() {
+            hasUnsavedChanges = true;
+            document.getElementById('unsavedWarning').classList.add('show');
+        });
+        input.addEventListener('input', function() {
+            hasUnsavedChanges = true;
+            document.getElementById('unsavedWarning').classList.add('show');
+        });
     });
   }
 
@@ -190,71 +355,67 @@ document.addEventListener('DOMContentLoaded', function () {
     setupMicButton();
   }
 
-  // --- CKEditor Setup ---
-  function setupCKEditor(textareaId) {
-    if (CKEDITOR.instances[textareaId]) CKEDITOR.instances[textareaId].destroy(true);
-    CKEDITOR.replace(textareaId);
+  // ======== Form Validation Before Submit (Unified) =========
+  editForm.addEventListener('submit', function(e) {
+    // Clear previous validation message
+    const validationWarning = document.getElementById('validationWarning');
+    if (validationWarning) validationWarning.classList.remove('show');
+    
+    // Daily post validation
+    if (postType === 'dailypost') {
+      if (!editorInstance) {
+        showValidationMessage('Editor not ready. Please wait a moment.');
+        e.preventDefault();
+        return;
+      }
+      
+      const rawText = editorInstance.getData()
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .trim();
 
-    CKEDITOR.instances[textareaId].on('instanceReady', function(evt) {
-      const editorInstance = evt.editor;
-
-      const updateWordCount = () => {
-        const content = editorInstance.getData();
-        const stripped = content.replace(/<[^>]*>/g, '').trim();
-        const words = stripped.split(/\s+/).filter(w=>w.length>0).length;
-        const chars = stripped.length;
-        document.getElementById('wordCount').textContent = words;
-        document.getElementById('charCount').textContent = chars;
-      };
-
-      editorInstance.on('change', updateWordCount);
-      updateWordCount();
-    });
-  }
-
-  // --- Mic Button Setup ---
-  function setupMicButton() {
-    const micButton = document.getElementById('mic-button');
-    if (!micButton) return;
-
-    if (window.SpeechRecognition || window.webkitSpeechRecognition) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      let recognition = new SpeechRecognition();
-      recognition.interimResults = false;
-      recognition.continuous = false;
-      recognition.lang = 'en-US';
-      let isListening = false;
-
-      recognition.onresult = (event) => {
-        let finalTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++)
-          if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
-
-        if (finalTranscript && CKEDITOR.instances['text']) {
-          CKEDITOR.instances['text'].insertHtml(finalTranscript + ' ');
-          CKEDITOR.instances['text'].fire('change');
-        }
-      };
-
-      recognition.onstart = () => {
-        micButton.textContent = 'Dictating... (Click to Stop)';
-        micButton.classList.add('btn-listening');
-        isListening = true;
-      };
-
-      recognition.onend = () => {
-        micButton.innerHTML = '<i class="fas fa-microphone"></i> Start Voice Input';
-        micButton.classList.remove('btn-listening');
-        isListening = false;
-      };
-
-      micButton.addEventListener('click', () => {
-        isListening ? recognition.stop() : recognition.start();
-      });
-    } else {
-      micButton.style.display = 'none';
+      // Remove whitespace to detect any visible characters
+      const visibleChars = rawText.replace(/\s+/g, '');
+      if (visibleChars.length === 0) {
+        showValidationMessage('Your daily entry cannot be empty or only whitespace.');
+        e.preventDefault();
+        return;
+      }
     }
-  }
+
+    // Mood post validation
+    if (postType === 'moodpost') {
+      const moodEmojiInput = document.getElementById('moodEmoji');
+      if (!moodEmojiInput || moodEmojiInput.value.trim() === '') {
+        showValidationMessage('Please select your current mood (emoji) before submitting.');
+        e.preventDefault();
+        return;
+      }
+
+      const energyEl = document.querySelector('[name="energy_level"]');
+      const workedEl = document.querySelector('[name="worked_out"]');
+      const triggerEl = document.querySelector('[name="mood_trigger"]');
+
+      if (!energyEl || !energyEl.value || energyEl.value < 1 || energyEl.value > 5) {
+        showValidationMessage('Please enter a valid energy level (1-5).');
+        e.preventDefault();
+        return;
+      }
+      if (!workedEl || workedEl.value.trim() === '') {
+        showValidationMessage('Please indicate whether you worked out today.');
+        e.preventDefault();
+        return;
+      }
+      if (!triggerEl || triggerEl.value.trim().length === 0) {
+        showValidationMessage('Please describe what triggered this mood.');
+        e.preventDefault();
+        return;
+      }
+    }
+
+    // Passed validation: clear flag
+    hasUnsavedChanges = false;
+  });
 });
 </script>
 {% endblock %}
