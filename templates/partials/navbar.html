@@ -64,7 +64,7 @@
             <!-- Clients and Therapists see the welcome and logout button -->
                 <a href="{% url 'accounts:update_info' %}" class="nav-link login-link">
                     <i class="fas fa-user"></i>
-                    Hi {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}!
+                    Hi {% if user.is_client %}{{ user.client_profile.first_name }}{% else %}{{ user.therapist_profile.first_name }}{% endif %}!
                 </a>
                 <form method="post" action="{% url 'accounts:logout' %}" style="display:inline;">
                     {% csrf_token %}
