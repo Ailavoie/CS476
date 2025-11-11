@@ -16,6 +16,7 @@ from datetime import date
 from django.views.generic import ListView
 from accounts.models import TherapistProfile
 from django.views.decorators.http import require_POST
+from django.contrib.auth.views import PasswordChangeView
 
 class RegisterView(TemplateView):
     template_name = "accounts/register.html"
@@ -252,55 +253,89 @@ def update_info(request):
         return render(request, "accounts/therapist_update_info.html", {"user": user})
     else:
         return redirect("accounts:register")
-    
-@login_required
+
+#A post method is required to call this function
 @require_POST
 def toggle_twofa(request):
+    #the user is stored
     user = request.user
+
+    #if the user is a client
     if hasattr(user, "client_profile"):
         client = request.user.client_profile
-        client.twofa = not client.twofa  # flip boolean
-        client.save()  # ✅ save the client_profile, not the user
+        #twofa field is updated to the opposite
+        client.twofa = not client.twofa
+        #new twofa field is saved
+        client.save()
         print("Saved client 2FA:", client.twofa)
+        #json is returned to update view
         return JsonResponse({'twofa': client.twofa})
+    #if the user is a therapist
     else:
         therapist = request.user.therapist_profile
-        therapist.twofa = not therapist.twofa  # flip boolean
-        therapist.save()  # ✅ save the therapist_profile, not the user
+        #twofa field is updated to the opposite
+        therapist.twofa = not therapist.twofa
+        #new twofa field is saved
+        therapist.save()
         print("Saved therapist 2FA:", therapist.twofa)
+        #json is returned to update view
         return JsonResponse({'twofa': therapist.twofa})
     
+#Login required for this view. View is for updating the user's info    
 @login_required
 def update_user_info(request):
+    #user is set
     user = request.user
+    #if profile is set based off if a user has a client_profile or a therapist_profile
     profile = user.client_profile if hasattr(user, "client_profile") else user.therapist_profile if hasattr(user, "therapist_profile") else None
-
+    print(profile)
+    
+    #If there is a post method
     if request.method == 'POST':
-        user_form = UpdateUserInfoForm(request.POST or None, instance=user)
+
+        #If the user has a client profile the UpdateClientInfoForm class is called
         if hasattr(user, "client_profile"):
             profile_form = UpdateClientInfoForm(request.POST, instance=profile)
+        #If the user has a therapist profile the UpdateTherapistInfoForm class is called
         elif hasattr(user, "therapist_profile"):
             profile_form = UpdateTherapistInfoForm(request.POST, instance=profile)
-        else:
-            return redirect("accounts:register")
 
-        if user_form.is_valid() and profile_form.is_valid()  :
-            user_form.save()
+        #if the form has no errors save the form and redirect
+        if profile_form.is_valid()  :
             profile_form.save()
-            messages.success(request, "Your information has been updated.")
-            return redirect('accounts:update_info')
+            messages.success(request, "Your changes have been saved.")
+            return redirect('accounts:update_user_info')
         else:
-            messages.error(request, "Please correct the errors below.")
+            return redirect('accounts:update_user_info')
+    #If it is not a post method fill the fields with current data
     else:
+        #user_form is used for the email field
         user_form = UpdateUserInfoForm(instance=user)
+
+        #if the user is a client show client fields
         if hasattr(user, "client_profile"):
             profile_form = UpdateClientInfoForm(instance=profile)
+        #if the user is a therapist show therapist fields
         elif hasattr(user, "therapist_profile"):
             profile_form = UpdateTherapistInfoForm(instance=profile)
+        #if neither redirect to registration
         else:
             return redirect("accounts:register")
-
+        
+        #render the html with the field data
         return render(request, "accounts/update_user_info.html", {
             "user_form": user_form,
             "profile_form": profile_form,
             })
+
+#view for customizing the PasswordChangeView
+class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
+    #update the template
+    template_name = 'accounts/change_password.html'
+    #update the success url page
+    success_url = reverse_lazy('accounts:update_info')
+
+    #add a success message upon password change
+    def form_valid(self, form):
+        messages.success(self.request, "Your password has been changed successfully!")
+        return super().form_valid(form)

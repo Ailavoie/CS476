@@ -1,9 +1,5 @@
 {% extends "base.html" %}
-
-
-
 {% block title %}Mindlink - Therapist Dashboard{% endblock %}
-
 
 
 {% block extra_css %}
@@ -230,6 +226,40 @@ input:checked + .slider:before {
 .register-form .form-group {
     margin-bottom: 20px;
 }
+
+.message-container {
+    margin-top: 20px;
+}
+
+.message {
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.message.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.message.info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.message.warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+.message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
 </style>
 {% endblock %}
 
@@ -243,6 +273,16 @@ input:checked + .slider:before {
     <div class="dashboard-header">
       <h2>Welcome, Dr. {{ user.first_name|default:user.email }} 👋</h2>
       <p>Manage your personal information, update your password, and turn on Two-Factor Authentication.</p>
+      <!-- notifications -->
+      {% if messages %}
+        <div class="messages">
+        {% for message in messages %}
+            <div {% if message.tags %} class="message {{ message.tags }}" {% endif %}>
+            {{ message }}
+            </div>
+        {% endfor %}
+          </div>       
+        {% endif %}
     </div>
 
     <!-- Grid with three interactive cards -->
@@ -283,15 +323,21 @@ input:checked + .slider:before {
   </div>
 </section>
 
+
 <script>
+//Event listener to update the twofa switch and text
 document.addEventListener("DOMContentLoaded", () => {
+  //toggle is set to the twofa switch
   const toggle = document.getElementById("twofa-switch");
 
+  //if toggle exists
   if (toggle) {
+    //add an event listener when there is a change to toggle
     toggle.addEventListener("change", async () => {
-      console.log("Toggle clicked!");  // <---- TEST LOG
+      console.log("Toggle clicked!");
 
       try {
+        //fetch the toggle_twofa view function method post
         const response = await fetch("{% url 'accounts:toggle_twofa' %}", {
           method: "POST",
           headers: {
@@ -301,13 +347,14 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         console.log("Response status:", response.status);
-
+        //if response is ok reload the window to show the new toggle status
         if (response.ok) {
           window.location.reload();
         } else {
           alert("Error updating 2FA status.");
           toggle.checked = !toggle.checked;
         }
+        //if twofa could not update alert user
       } catch (error) {
         console.error("Error toggling 2FA:", error);
         toggle.checked = !toggle.checked;

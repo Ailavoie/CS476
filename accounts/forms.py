@@ -4,6 +4,7 @@ from .models import User, ClientProfile, TherapistProfile, COUNTRY_CHOICES
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from .models import REGION_DATA
+import ast
 
 User = get_user_model()
 
@@ -180,17 +181,21 @@ class TherapistRegisterForm(BaseRegisterForm):
 class ConnectionRequestForm(forms.Form):
     therapist_code = forms.CharField(max_length=8, required=True, label="Therapist Code")
 
+#Update2FAForm used to update the twofa field in on the form
 class Update2FAForm(forms.Form):
     twofa = forms.BooleanField(required=False, label="Enable Two-Factor Authentication")
 
+#The UpdateUserInfoForm is required to pull the email from the User model level
 class UpdateUserInfoForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['email']
+        #This field is visible but disabled so it can not be changed
         widgets = {
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'disabled': True }),
         }
 
+#The UpdateClientInfoForm is used to set the client fields
 class UpdateClientInfoForm(forms.ModelForm):
     country = forms.ChoiceField(choices=COUNTRY_CHOICES, required=True, widget=forms.Select(attrs={'id': 'id_therapist-country', 'class': 'country-select'}))
     province = forms.ChoiceField(choices= REGION_DATA, required=False, widget=forms.Select(attrs={'id': 'id_client-province', 'class': 'province-select'}))
@@ -198,25 +203,37 @@ class UpdateClientInfoForm(forms.ModelForm):
     class Meta:
         model = ClientProfile
         fields = ['first_name', 'last_name', 'country', 'province', 'street', 'phone_number', 'emergency_contact_name', 'emergency_contact_phone']
-        widgets = {
-            'first_name': forms.EmailInput(attrs={'class': 'form-control'}),
-        }
-    
+
+#The UpdateTherapistInfoForm is set for the therapist user fields to display
 class UpdateTherapistInfoForm(forms.ModelForm):
+    #Choice fields need to be defined
     country = forms.ChoiceField(choices=COUNTRY_CHOICES, required=True, widget=forms.Select(attrs={'id': 'id_therapist-country', 'class': 'country-select'}))
     province = forms.ChoiceField(choices= REGION_DATA, required=False, widget=forms.Select(attrs={'id': 'id_client-province', 'class': 'province-select'}))
     specialty = forms.MultipleChoiceField(choices=EXPERTISES, required=True, widget=forms.SelectMultiple(attrs={'class': 'multi-select-specialty'}))
 
     class Meta:
         model = TherapistProfile
-        fields = ['first_name', 'last_name', 'license_number', 'specialty', 'country', 'province', 'street', 'phone_number']
+        fields = ['first_name', 'last_name', 'license_number', 'country', 'province', 'street', 'phone_number']
     
+    #This method is needed for the specialty field to select currently set values
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        print("Initial specialties:", self.fields['specialty'].initial)
-        if self.instance and self.instance.specialty:
-            selected_specialties = [
-                s.strip() for s in self.instance.specialty.split(',') if s.strip()
-            ]
-            self.fields['specialty'].initial = selected_specialties
-      
+        specialty = getattr(self.instance, "specialty", "")
+        initial_list = []
+
+        #As specialty is stored as string values in the model we need to break it down into a a list
+        #The values need to match exactly with what is in the database.
+        if specialty:
+            initial_list = [str(v) for v in ast.literal_eval(specialty)]
+        self.fields['specialty'].initial = initial_list
+        print("Specialty:", self.fields['specialty'].initial)
+
+    #As specialty is saved as a string in the model I had to set a save method
+    def save(self, commit=True):
+
+        #save the specialty field as a string. I kept it like this as it is used in other forms. 
+        personalinfo = super().save(commit=False)
+        personalinfo.specialty = str(self.cleaned_data['specialty'])
+        if commit:
+            personalinfo.save()
+        return personalinfo

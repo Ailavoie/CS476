@@ -3,6 +3,7 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'accounts/css/style.css' %}">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 {% endblock %}
 
 {% block extra_js %}
@@ -14,16 +15,45 @@
 <div class="container register-container">
     <div class="register-card">
         <h2 class="form-title">Update Personal Information</h2>
-        <form method="post" class="register-form">
+        {% if messages %}
+        <ul class="messages">
+        {% for message in messages %}
+            <div {% if message.tags %} class="message {{ message.tags }}" {% endif %}>
+            {{ message }}
+            </div>
+        {% endfor %}
+        </ul>       
+        {% endif %}
             {% csrf_token %}
-            <form method="post" id="updateForm">
+           <form method="post" class="register-form" id="updateForm">
     {% csrf_token %}
     {{ user_form.as_p }}
     {{ profile_form.as_p }}
     <button type="submit" class="btn btn-primary">Save Changes</button>
-  </form>
-        </form>
+</form>
     </div>
 </div>
+
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', function () {
+    const countrySelect = document.getElementById('id_therapist-country');
+    const provinceSelect = document.getElementById('id_client-province');
+
+    countrySelect.addEventListener('change', function () {
+        const selectedCountry = this.value;
+        fetch(`/ajax/load_provinces/?country=${selectedCountry}`)
+            .then(response => response.json())
+            .then(data => {
+                provinceSelect.innerHTML = '';
+                data.provinces.forEach(province => {
+                    const option = document.createElement('option');
+                    option.value = province;
+                    option.text = province;
+                    provinceSelect.appendChild(option);
+                });
+            });
+    });
+});
+</script>
 
 {% endblock %}
