@@ -146,7 +146,21 @@
 {% block content %}
 <section class="requests-dashboard">
   <div class="dashboard-container">
-
+    {% if messages %}
+    <div class="section-header" style="margin-bottom: 20px; padding: 20px;">
+        <ul style="list-style: none; padding: 0; margin: 0;">
+            {% for message in messages %}
+            {% comment %} 
+            Django messages uses tags like 'success', 'error', 'warning', 
+            which you can map to CSS classes like 'alert-success', 'alert-danger', etc.
+            {% endcomment %}
+            <li class="alert alert-{{ message.tags }}" style="color: #2d3748; font-size: 16px;">
+                {{ message }}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
     <a href="{% url 'posts:therapist_clients' %}" class="back-btn">
       <i class="fas fa-arrow-left"></i> Back to Clients
     </a>
