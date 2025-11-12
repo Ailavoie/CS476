@@ -161,7 +161,7 @@ class PostDeleteView(LoginRequiredMixin, View):
         model = DailyPost if post_type == "dailypost" else MoodPost
         return get_object_or_404(model, pk=pk, client=self.request.user.client_profile)
 
-    def post(self, request, pk, post_type):
+    def post(self, request, *args, **kwargs):
         post = self.get_object()
         post.delete()
         return redirect(self.success_url)

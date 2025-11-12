@@ -37,10 +37,7 @@
     color: #718096;
   }
 
-  .clients-list {
-    list-style: none;
-    padding: 0;
-  }
+  .clients-list { list-style: none; padding: 0; }
 
   .client-item {
     background: white;
@@ -67,10 +64,7 @@
     color: #2d3748;
   }
 
-  .client-actions {
-    display: flex;
-    gap: 10px;
-  }
+  .client-actions { display: flex; gap: 10px; }
 
   .btn {
     display: inline-flex;
@@ -122,6 +116,64 @@
     font-size: 18px;
     color: #718096;
   }
+  .modal { display: none; }
+  .modal.is-open { display: block; }
+  .modal__overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .modal__container {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  }
+  .modal__header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+  .modal__title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #2d3748;
+  }
+  .modal__close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #718096;
+  }
+  .modal__content {
+    margin-bottom: 30px;
+    color: #4a5568;
+    font-size: 16px;
+  }
+  .modal__footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .modal__btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .modal__btn-danger {
+    background: #f56565;
+    color: white;
+  }
+  .modal__btn-danger:hover { background: #e53e3e; }
+
+  .modal__overlay { pointer-events: auto; }
+  .modal__container { pointer-events: auto; }
 </style>
 {% endblock %}
 
@@ -177,7 +229,7 @@
     <div class="modal__container" role="dialog" aria-modal="true">
       <header class="modal__header">
         <h2 class="modal__title">Disconnect from Client?</h2>
-        <button class="modal__close" aria-label="Close modal" data-micromodal-close>×</button>
+        <button type="button" class="modal__close" aria-label="Close modal" data-micromodal-close onclick="hardCloseDisconnect();">×</button>
       </header>
       <main class="modal__content">
         <p>Are you sure you want to disconnect from this client?</p>
@@ -187,8 +239,8 @@
         <form id="disconnectForm" method="post" action="">
           {% csrf_token %}
           <button type="submit" class="modal__btn modal__btn-danger">Yes, Disconnect</button>
-          <button type="button" class="modal__btn" data-micromodal-close>Cancel</button>
         </form>
+        <button type="button" class="modal__btn" data-micromodal-close onclick="hardCloseDisconnect();">Cancel</button>
       </footer>
     </div>
   </div>
@@ -198,13 +250,24 @@
 {% block extra_js %}
 <script src="https://unpkg.com/micromodal/dist/micromodal.min.js"></script>
 <script>
+  function hardCloseDisconnect() {
+    try { MicroModal.close('disconnectModal'); } catch(e) {}
+    const modal = document.getElementById('disconnectModal');
+    if (modal) {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    document.body.style.overflow = 'auto';
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     MicroModal.init({
       openTrigger: 'data-micromodal-trigger',
       closeTrigger: 'data-micromodal-close',
-      disableScroll: true,
+      disableScroll: false,
       disableFocus: true,
-      awaitCloseAnimation: true
+      awaitCloseAnimation: true,
+      onClose: () => { document.body.style.overflow = 'auto'; }
     });
   });
 
