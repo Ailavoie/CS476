@@ -631,21 +631,22 @@
     </div>
   </div>
 </div>
+<form id="deleteForm" method="post" style="display:none;">
+  <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+</form>
 {% endblock %}
 
 {% block extra_js %}
   {% load static %}
   <script src="https://unpkg.com/micromodal/dist/micromodal.min.js"></script>
   <script src="{% static 'posts/js/posts.js' %}"></script>
-  
+
   <script>
-    // Toggle date section (accordion)
     function toggleDateSection(header) {
       const accordion = header.nextElementSibling;
       const chevron = header.querySelector('.chevron');
       const isOpen = accordion.classList.contains('open');
-      
-      // Close all other sections
+
       document.querySelectorAll('.posts-accordion.open').forEach(acc => {
         if (acc !== accordion) {
           acc.classList.remove('open');
@@ -653,8 +654,7 @@
           acc.previousElementSibling.querySelector('.chevron').classList.remove('rotated');
         }
       });
-      
-      // Toggle current section
+
       if (isOpen) {
         accordion.classList.remove('open');
         header.classList.remove('active');
@@ -665,14 +665,13 @@
         chevron.classList.add('rotated');
       }
     }
-    
-    // Toggle individual post expansion
+
     function togglePost(button) {
       const postCard = button.closest('.post-card');
       const isExpanded = postCard.classList.contains('expanded');
       const expandText = button.querySelector('.expand-text');
       const icon = button.querySelector('i');
-      
+
       if (isExpanded) {
         postCard.classList.remove('expanded');
         expandText.textContent = 'Read Full';
@@ -683,36 +682,47 @@
         icon.className = 'fas fa-compress-alt';
       }
     }
-    
-    // Open first date section by default
+
     document.addEventListener('DOMContentLoaded', function() {
       const firstHeader = document.querySelector('.date-header');
-      if (firstHeader) {
-        toggleDateSection(firstHeader);
-      }
-      
-      // Initialize MicroModal for delete confirmation
+      if (firstHeader) toggleDateSection(firstHeader);
+
       MicroModal.init({
         openTrigger: 'data-micromodal-trigger',
         closeTrigger: 'data-micromodal-close',
-        disableScroll: true,
+        disableScroll: false,
         disableFocus: true,
-        awaitCloseAnimation: true,
-        debugMode: true 
+        awaitCloseAnimation: true
       });
+
+      document.body.style.overflow = 'auto';
     });
 
-    // Handle delete preparation to set the URL on the confirm button
     function prepareDelete(button) {
       const deleteUrl = button.getAttribute('data-delete-url');
       const confirmButton = document.getElementById('confirmDelete');
-      
-      // Set the action for the form/button that handles the delete request
-      // We assume posts.js handles the actual submission of the delete form/button click
-      // For now, we'll set a custom attribute or just direct it if possible (though posts.js is likely required)
+      const deleteForm = document.getElementById('deleteForm');
+
       confirmButton.onclick = function() {
-        window.location.href = deleteUrl;
-      }
+        document.body.style.overflow = 'auto';
+
+        deleteForm.setAttribute('action', deleteUrl);
+        deleteForm.submit();
+
+        MicroModal.close('deleteModal');
+      };
     }
+
+    window.addEventListener('pageshow', () => {
+      document.body.style.overflow = 'auto';
+      document.documentElement.style.overflow = 'auto';
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        document.body.style.overflow = 'auto';
+        document.documentElement.style.overflow = 'auto';
+      }
+    });
   </script>
 {% endblock %}
