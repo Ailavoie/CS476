@@ -82,8 +82,16 @@
     margin-bottom: 20px;
   }
 
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
   /* Buttons */
   .btn-action {
+    width: 100%;
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -211,6 +219,8 @@
       padding: 25px;
     }
   }
+  .modal__overlay { pointer-events: auto; }
+  .modal__container { pointer-events: auto; }
 </style>
 {% endblock %}
 
@@ -231,11 +241,11 @@
       <div class="dashboard-card">
         <h4><i class="fas fa-book dashboard-icon"></i>Your Journal</h4>
         <p>Create and manage journal entries to express your thoughts and emotions.</p>
-        <div>
+        <div class="btn-row">
           <a href="{% url 'posts:create_post' %}" class="btn-action btn-primary">
             <i class="fas fa-plus-circle"></i> New Journal Entry
           </a>
-          <a href="{% url 'posts:list_posts' %}" class="btn-action btn-secondary" style="margin-left: 10px;">
+          <a href="{% url 'posts:list_posts' %}" class="btn-action btn-secondary">
             <i class="fas fa-book-reader"></i> View Entries
           </a>
         </div>
@@ -284,7 +294,14 @@
     <div class="modal__container" role="dialog" aria-modal="true">
       <header class="modal__header">
         <h2 class="modal__title">Disconnect from Therapist?</h2>
-        <button class="modal__close" aria-label="Close modal" data-micromodal-close>×</button>
+        <button
+          type="button"
+          class="modal__close"
+          aria-label="Close modal"
+          data-micromodal-close
+          onclick="hardCloseDisconnect();">
+          ×
+        </button>
       </header>
       <main class="modal__content">
         <p>Are you sure you want to disconnect from your therapist?</p>
@@ -294,9 +311,17 @@
         <form id="disconnectForm" method="post" action="">
           {% csrf_token %}
           <button type="submit" class="modal__btn modal__btn-danger">Yes, Disconnect</button>
-          <button type="button" class="modal__btn" data-micromodal-close>Cancel</button>
         </form>
+
+        <button
+          type="button"
+          class="modal__btn"
+          data-micromodal-close
+          onclick="hardCloseDisconnect();">
+          Cancel
+        </button>
       </footer>
+
     </div>
   </div>
 </div>
@@ -306,13 +331,24 @@
 {% load static %}
 <script src="https://unpkg.com/micromodal/dist/micromodal.min.js"></script>
 <script>
+  function hardCloseDisconnect() {
+    try { MicroModal.close('disconnectModal'); } catch(e) {}
+    const modal = document.getElementById('disconnectModal');
+    if (modal) {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    document.body.style.overflow = 'auto';
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     MicroModal.init({
       openTrigger: 'data-micromodal-trigger',
       closeTrigger: 'data-micromodal-close',
-      disableScroll: true,
+      disableScroll: false,
       disableFocus: true,
-      awaitCloseAnimation: true
+      awaitCloseAnimation: true,
+      onClose: () => { document.body.style.overflow = 'auto'; }
     });
   });
 

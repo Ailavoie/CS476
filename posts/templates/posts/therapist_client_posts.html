@@ -1,81 +1,264 @@
 {% extends "base.html" %}
 
-{% block title %}
-  Mindlink - {{ client.first_name }}'s Posts
-{% endblock %}
+{% block title %}Mindlink - {{ client.first_name }}'s Posts{% endblock %}
 
 {% block extra_css %}
-  {% load static %}
-  <link rel="stylesheet" href="{% static 'posts/css/style.css' %}">
+{% load static %}
+<link rel="stylesheet" href="{% static 'posts/css/style.css' %}">
+<style>
+  .therapist-dashboard {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 40px 0;
+  }
+
+  .dashboard-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  .dashboard-header {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+
+  .dashboard-header h1 {
+    font-size: 32px;
+    color: #2d3748;
+    margin-bottom: 10px;
+  }
+
+  .dashboard-header p {
+    color: #718096;
+    font-size: 16px;
+  }
+
+  .btn-secondary {
+    background: white;
+    color: #667eea;
+    padding: 12px 25px;
+    border-radius: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    text-decoration: none;
+  }
+
+  .post-card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px 30px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+  }
+
+  .post-card:hover {
+    transform: translateY(-3px);
+  }
+
+  .post-date {
+    color: #667eea;
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .post-text {
+    color: #2d3748;
+    font-size: 16px;
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+
+  .post-text ul {
+    list-style-type: none;
+    padding-left: 0;
+  }
+
+  .post-text li {
+    padding: 3px 0;
+  }
+
+  .existing-comments {
+    background: #fefcbf;
+    border-left: 4px solid #ecc94b;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+
+  .existing-comments strong {
+    color: #744210;
+  }
+
+  .existing-comments ul {
+    margin-top: 8px;
+    padding-left: 18px;
+  }
+
+  .comment-form {
+    background: #f7fafc;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .comment-form textarea {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid #cbd5e0;
+    padding: 10px;
+    resize: vertical;
+    font-size: 14px;
+    margin-top: 8px;
+    margin-bottom: 15px;
+  }
+
+  .comment-form label {
+    font-weight: 600;
+    color: #4a5568;
+  }
+
+  .post-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .btn-edit {
+    background: #48bb78;
+    color: white;
+    padding: 10px 22px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+
+  .btn-edit:hover {
+    background: #38a169;
+  }
+
+  .no-posts {
+    background: white;
+    padding: 60px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    font-size: 18px;
+    color: #718096;
+  }
+
+  .btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(45deg, #63b3ed, #3182ce);
+    color: white;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .btn-back:hover {
+    background: linear-gradient(45deg, #4299e1, #2b6cb0);
+    transform: translateX(-3px);
+    text-decoration: none;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<section class="my-posts">
-  <div class="container">
-    <div class="section-title">
-      <h2>Posts from {{ client.first_name }} {{ client.last_name }}</h2>
-      <p>Review and leave your comments on your client’s entries.</p>
-    </div>
-    <div class="post-actions-left">
-      <a href="{% url 'posts:therapist_clients' %}" class="btn-secondary">← Back to Client List</a>
+<section class="therapist-dashboard">
+  <div class="dashboard-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+      <a href="{% url 'posts:therapist_clients' %}" class="btn-back">
+        <i class="fas fa-arrow-left"></i> Back to Client List
+      </a>
     </div>
 
-    <div class="posts-container">
-      {% if posts %}
-        <ul class="posts-list">
-          {% for post in posts %}
-            <li class="post-item">
-              <div class="post-date">
-                <i class="fas fa-calendar-alt"></i>
-                <span><em>Created at:</em> {{ post.created_at|date:"F j, Y, g:i a" }}</span>
-              </div>
-
-              <div class="post-text">
-                {% if post.post_type == 'daily' %}
-                    <p><strong>Daily Post Details:</strong></p>
-                    <p>{{ post.text|safe }}</p>
-                {% elif post.post_type == 'mood' %}
-                    <p><strong>Mood Post Details:</strong></p>
-                    <ul>
-                        <li>Mood: {{ post.mood_emoji }}</li>
-                        <li>Energy Level: {{ post.energy_level }}</li>
-                        <li>Worked Out: {% if post.worked_out %}Yes{% else %}No{% endif %}</li>
-                        <li>Trigger: {{ post.mood_trigger }}</li>
-                    </ul>
-                {% endif %}
-              </div>
-
-              {% if post.comments.all %}
-                <div class="existing-comments">
-                  <strong>Therapist Comments:</strong>
-                  <ul>
-                    {% for comment in post.comments.all %}
-                      <li>
-                        <p>{{ comment.text }}</p>
-                        <small><em>By {{ comment.therapist.user.first_name }} {{ comment.therapist.user.last_name }} on {{ comment.created_at|date:"F j, Y, g:i a" }}</em></small>
-                      </li>
-                    {% endfor %}
-                  </ul>
-                </div>
-              {% endif %}
-
-              <form method="post" action="{% url 'posts:add_comment' post_id=post.id post_type=post.post_type|add:'post' %}" class="comment-form">
-                {% csrf_token %}
-                <div class="form-container">
-                  <label for="commentary-{{ post.id }}"><strong>Your Comment:</strong></label>
-                  <textarea id="commentary-{{ post.id }}" name="commentary" rows="3" placeholder="Leave a comment..."></textarea>
-                  <div class="post-actions">
-                    <button type="submit" class="btn-sm btn-edit">💾 Save Comment</button>
-                  </div>
-                </div>
-              </form>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="no-posts">No posts yet for this client.</p>
-      {% endif %}
+    <div class="dashboard-header">
+      <h1>🧠 {{ client.first_name }} {{ client.last_name }}'s Journal Entries</h1>
+      <p>Review and leave comments to support your client’s progress.</p>
     </div>
+
+
+    {% if posts %}
+      {% for post in posts %}
+        <div class="post-card">
+          <div class="post-date">
+            <i class="fas fa-calendar-alt"></i> 
+            Created at: {{ post.created_at|date:"F j, Y, g:i a" }}
+          </div>
+
+          <div class="post-text">
+            {% if post.post_type == 'daily' %}
+              <p><strong>Daily Post:</strong></p>
+              <p>{{ post.text|safe }}</p>
+            {% elif post.post_type == 'mood' %}
+              <p><strong>Mood Post:</strong></p>
+              <ul>
+                <li><strong>Mood:</strong> {{ post.emoji }}</li>
+                <li><strong>Energy Level:</strong> {{ post.energy_level }}</li>
+                <li><strong>Worked Out:</strong> {% if post.worked_out %}Yes{% else %}No{% endif %}</li>
+                <li><strong>Trigger:</strong> {{ post.mood_trigger }}</li>
+              </ul>
+            {% endif %}
+          </div>
+
+          {% if post.comments.all %}
+            <div class="existing-comments">
+              <strong><i class="fas fa-comments"></i> Therapist Comments:</strong>
+              <ul>
+                {% for comment in post.comments.all %}
+                  <li>
+                    <p>{{ comment.text }}</p>
+                    <small><em>By {{ comment.therapist.user.first_name }} {{ comment.therapist.user.last_name }} on {{ comment.created_at|date:"F j, Y, g:i a" }}</em></small>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+
+          <form method="post" action="{% url 'posts:add_comment' post_id=post.id post_type=post.post_type|add:'post' %}" class="comment-form">
+            {% csrf_token %}
+            <label for="commentary-{{ post.id }}">💬 <strong>Your Comment:</strong></label>
+            <textarea id="commentary-{{ post.id }}" name="commentary" rows="3" placeholder="Leave a comment..."></textarea>
+            <div class="post-actions">
+              <button type="submit" class="btn-edit">
+                <i class="fas fa-save"></i> Save Comment
+              </button>
+            </div>
+          </form>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="no-posts">
+        <div>📝 No posts yet for this client.</div>
+      </div>
+    {% endif %}
   </div>
 </section>
 {% endblock %}
