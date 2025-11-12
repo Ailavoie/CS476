@@ -12,6 +12,7 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(next_page='accounts:login'), name='logout'),
     path("change-password/", views.CustomPasswordChangeView.as_view(), name="change_password"),
     path("send-request/", views.SendConnectionRequestView.as_view(), name="send_connection_request"),
+    path("send-request/", views.SendConnectionRequestViaCodeView.as_view(), name="send_connection_request"),
     path("therapist/requests/", views.ConnectionRequestListView.as_view(), name="therapist_requests"),
     path("therapist/requests/<int:pk>/accept/", views.AcceptConnectionRequestView.as_view(), name="accept_request"),
     path("therapist/requests/<int:pk>/reject/", views.RejectConnectionRequestView.as_view(), name="reject_request"),
@@ -20,4 +21,5 @@ urlpatterns = [
     path("disconnect/<int:therapist_id>/", views.TherapistDisconnectView.as_view(), name="disconnect_therapist"),
     path('toggle-twofa/', views.toggle_twofa, name='toggle_twofa'),
     path('update-user-info/', views.update_user_info, name='update_user_info'),
+    path("send-request/<int:therapist_id>/", views.SendDirectConnectionRequestView.as_view(), name="send_direct_request"),
 ]
