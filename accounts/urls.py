@@ -11,7 +11,6 @@ urlpatterns = [
     path("login/", auth_views.LoginView.as_view(template_name='accounts/login.html', next_page='/accounts/dashboard/'), name="login"),
     path('logout/', auth_views.LogoutView.as_view(next_page='accounts:login'), name='logout'),
     path("change-password/", views.CustomPasswordChangeView.as_view(), name="change_password"),
-    path("send-request/", views.SendConnectionRequestView.as_view(), name="send_connection_request"),
     path("send-request/", views.SendConnectionRequestViaCodeView.as_view(), name="send_connection_request"),
     path("therapist/requests/", views.ConnectionRequestListView.as_view(), name="therapist_requests"),
     path("therapist/requests/<int:pk>/accept/", views.AcceptConnectionRequestView.as_view(), name="accept_request"),
