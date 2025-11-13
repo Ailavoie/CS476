@@ -370,8 +370,7 @@ def login_view(request):
                 form = AuthenticationForm()
                 return render(request, 'accounts/login.html', {'form': form})
         
-        # THIS IS THE CRITICAL FIX: Authenticate using email and password
-        # This checks if the credentials are valid against the database
+        # Authenticate using email and password
         user = authenticate(request, username=email, password=password)
         
         print(f"Authenticated user: {user}")
@@ -381,51 +380,76 @@ def login_view(request):
             # User credentials are VALID - they exist in the database and password matches
             print("✓ Authentication successful - user credentials are valid")
             
-            # Generate 2FA code
-            code = TwoFactorCode.generate_code()
-            TwoFactorCode.objects.create(user=user, code=code)
+            # CHECK IF USER HAS 2FA ENABLED
+            twofa_enabled = False
             
-            print(f"Generated 2FA code: {code}")
+            # Check if user is a client with 2FA enabled
+            if hasattr(user, 'client_profile') and user.client_profile.twofa:
+                twofa_enabled = True
+                print("Client has 2FA enabled")
             
-            # Send email with code
-            try:
-                send_mail(
-                    subject='Your 2FA Code',
-                    message=f'Your verification code is: {code}\n\nThis code will expire in 10 minutes.',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=False,
-                )
-                print(f"2FA code sent to {user.email}: {code}")
-            except Exception as e:
-                print(f"Email sending failed: {e}")
+            # Check if user is a therapist with 2FA enabled
+            elif hasattr(user, 'therapist_profile') and user.therapist_profile.twofa:
+                twofa_enabled = True
+                print("Therapist has 2FA enabled")
             
-            # Store user id in session for 2FA verification
-            request.session['pending_user_id'] = user.id
+            # If 2FA is ENABLED, send code and require verification
+            if twofa_enabled:
+                # Generate 2FA code
+                code = TwoFactorCode.generate_code()
+                TwoFactorCode.objects.create(user=user, code=code)
+                
+                print(f"Generated 2FA code: {code}")
+                
+                # Send email with code
+                try:
+                    send_mail(
+                        subject='Your 2FA Code',
+                        message=f'Your verification code is: {code}\n\nThis code will expire in 10 minutes.',
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[user.email],
+                        fail_silently=False,
+                    )
+                    print(f"2FA code sent to {user.email}: {code}")
+                except Exception as e:
+                    print(f"Email sending failed: {e}")
+                
+                # Store user id in session for 2FA verification
+                request.session['pending_user_id'] = user.id
+                
+                print("RETURNING JSON: success=True, requires_2fa=True")
+                
+                if is_ajax:
+                    return JsonResponse({'success': True, 'requires_2fa': True})
+                else:
+                    return render(request, 'accounts/login.html', {
+                        'show_2fa': True,
+                        'form': AuthenticationForm()
+                    })
             
-            print("RETURNING JSON: success=True, requires_2fa=True")
-            
-            # MUST return JsonResponse for AJAX requests
-            if is_ajax:
-                return JsonResponse({'success': True, 'requires_2fa': True})
+            # If 2FA is DISABLED, log them in directly
             else:
-                # Non-AJAX request (shouldn't happen with current JS, but handle it)
-                return render(request, 'accounts/login.html', {
-                    'show_2fa': True,
-                    'form': AuthenticationForm()
-                })
+                print("2FA is disabled - logging user in directly")
+                
+                # Log the user in immediately
+                login(request, user, backend='accounts.backends.EmailBackend')
+                
+                print("SUCCESS: User logged in without 2FA")
+                
+                if is_ajax:
+                    return JsonResponse({'success': True, 'requires_2fa': False})
+                else:
+                    return redirect('core:home')
         else:
-            # User credentials are INVALID - either email doesn't exist or password is wrong
+            # User credentials are INVALID
             print("✗ Authentication FAILED - invalid email or password")
             
             if is_ajax:
-                # Return JSON error for AJAX requests
                 return JsonResponse({
                     'success': False, 
                     'error': 'Invalid email or password'
                 })
             else:
-                # Return template with error for non-AJAX requests
                 form = AuthenticationForm()
                 return render(request, 'accounts/login.html', {
                     'form': form,
