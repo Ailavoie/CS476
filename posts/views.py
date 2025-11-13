@@ -33,9 +33,8 @@ class PostCreateView(LoginRequiredMixin, View):
         concrete_subject = ConcreteSubject(post)
         concrete_observer = EmailNotifier()
         concrete_subject.attach(concrete_observer)
-        concrete_observer_notification = PostNotification()
-        concrete_subject.attach(concrete_observer_notification)
         concrete_subject.notify()
+        concrete_subject.detach(concrete_observer)
 
         return redirect(self.success_url)
 
