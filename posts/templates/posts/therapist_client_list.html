@@ -1,47 +1,216 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}
-  Mindlink - Your Clients
-{% endblock %}
+{% block title %}Mindlink - Your Clients{% endblock %}
 
 {% block extra_css %}
-  {% load static %}
-  <link rel="stylesheet" href="{% static 'posts/css/style.css' %}">
+<link rel="stylesheet" href="{% static 'posts/css/style.css' %}">
+<style>
+  .client-dashboard {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 50px 0;
+  }
+
+  .dashboard-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  .section-header {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 40px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+  }
+
+  .section-header h2 {
+    font-size: 32px;
+    color: #2d3748;
+    margin-bottom: 10px;
+  }
+
+  .section-header p {
+    color: #718096;
+  }
+
+  .clients-list {
+    list-style: none;
+    padding: 0;
+  }
+
+  .client-item {
+    background: white;
+    border-radius: 15px;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: 0.2s ease;
+  }
+
+  .client-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  }
+
+  .client-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    color: #2d3748;
+  }
+
+  .client-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    color: white;
+    transition: 0.2s ease;
+  }
+
+  .btn-view {
+    background: linear-gradient(45deg, #63b3ed, #3182ce);
+  }
+  .btn-view:hover {
+    background: linear-gradient(45deg, #4299e1, #2b6cb0);
+  }
+
+  .btn-disconnect {
+    background: linear-gradient(45deg, #f56565, #e53e3e);
+  }
+  .btn-disconnect:hover {
+    background: linear-gradient(45deg, #e53e3e, #c53030);
+  }
+
+  .btn-requests {
+    background: linear-gradient(45deg, #48bb78, #38a169);
+    color: white;
+    display: inline-block;
+    margin-bottom: 30px;
+    padding: 12px 25px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .btn-requests:hover {
+    background: linear-gradient(45deg, #38a169, #2f855a);
+  }
+
+  .no-clients {
+    background: white;
+    text-align: center;
+    padding: 60px;
+    border-radius: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    font-size: 18px;
+    color: #718096;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<section class="my-posts">
-  <div class="container">
-    <div class="section-title">
+<section class="client-dashboard">
+  <div class="dashboard-container">
+
+    <div class="section-header">
       <h2>Your Clients</h2>
-      <p>Connect with your clients and view their journal entries.</p>
+      <p>Manage your active clients and access their journal entries.</p><br>
+      <a href="{% url 'accounts:therapist_requests' %}" class="btn-requests">
+        <i class="fas fa-envelope-open-text"></i> View Connection Requests
+      </a>
     </div>
 
-    <div class="posts-container">
-      {% if clients %}
-        <ul class="posts-list">
-          {% for client in clients %}
-            <li class="post-item client-item">
-              <div class="client-info">
-                <i class="fas fa-user"></i>
-                <span class="client-name">{{ client.first_name }} {{ client.last_name }}</span>
-              </div>
+    {% if clients %}
+      <ul class="clients-list">
+        {% for client in clients %}
+          <li class="client-item">
+            <div class="client-info">
+              <i class="fas fa-user-circle"></i>
+              <span>{{ client.user.first_name }} {{ client.user.last_name }}</span>
+            </div>
 
-              <div class="client-actions">
-                <form action="{% url 'posts:therapist_client_posts' client.id %}" method="get">
-                  <button type="submit" class="view-posts-button">
-                    View Posts
-                  </button>
-                </form>
-              </div>
-            </li>
-          {% endfor %}
+            <div class="client-actions">
+              <form action="{% url 'posts:therapist_client_posts' client.id %}" method="get">
+                <button type="submit" class="btn btn-view">
+                  <i class="fas fa-book-open"></i> View Posts
+                </button>
+              </form>
 
-        </ul>
-      {% else %}
-        <p class="no-posts">No clients assigned yet.</p>
-      {% endif %}
-    </div>
+              <button class="btn btn-disconnect" 
+                      data-micromodal-trigger="disconnectModal"
+                      onclick="prepareDisconnect('{{ client.pk }}')">
+                <i class="fas fa-unlink"></i> Disconnect
+              </button>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="no-clients">
+        <i class="fas fa-users-slash" style="font-size: 40px; margin-bottom: 10px;"></i>
+        <p>No clients assigned yet.</p>
+      </div>
+    {% endif %}
   </div>
 </section>
+
+<!-- Disconnect Confirmation Modal -->
+<div class="modal micromodal-slide" id="disconnectModal" aria-hidden="true">
+  <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+    <div class="modal__container" role="dialog" aria-modal="true">
+      <header class="modal__header">
+        <h2 class="modal__title">Disconnect from Client?</h2>
+        <button class="modal__close" aria-label="Close modal" data-micromodal-close>×</button>
+      </header>
+      <main class="modal__content">
+        <p>Are you sure you want to disconnect from this client?</p>
+        <p><strong>This action cannot be undone.</strong></p>
+      </main>
+      <footer class="modal__footer">
+        <form id="disconnectForm" method="post" action="">
+          {% csrf_token %}
+          <button type="submit" class="modal__btn modal__btn-danger">Yes, Disconnect</button>
+          <button type="button" class="modal__btn" data-micromodal-close>Cancel</button>
+        </form>
+      </footer>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/micromodal/dist/micromodal.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    MicroModal.init({
+      openTrigger: 'data-micromodal-trigger',
+      closeTrigger: 'data-micromodal-close',
+      disableScroll: true,
+      disableFocus: true,
+      awaitCloseAnimation: true
+    });
+  });
+
+  function prepareDisconnect(clientId) {
+    const form = document.getElementById('disconnectForm');
+    form.action = `/posts/therapist/clients/${clientId}/disconnect/`;
+  }
+</script>
 {% endblock %}

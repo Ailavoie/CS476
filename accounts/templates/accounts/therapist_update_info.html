@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+{% block title %}Mindlink - Therapist Dashboard{% endblock %}
+
+
+{% block extra_css %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'posts/css/style.css' %}">
+<style>
+  /* Gradient background and overall layout */
+  .therapist-dashboard {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 50px 0;
+  }
+
+  .dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  /* Header card */
+  .dashboard-header {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    margin-bottom: 40px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+
+  .dashboard-header h2 {
+    font-size: 36px;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 10px;
+  }
+
+  .dashboard-header p {
+    color: #718096;
+    font-size: 16px;
+  }
+
+  /* Grid layout for cards */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 30px;
+  }
+
+  .dashboard-card {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s, box-shadow 0.3s;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  }
+
+  .dashboard-card h4 {
+    font-size: 22px;
+    color: #2d3748;
+    font-weight: 700;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dashboard-card p {
+    color: #718096;
+    font-size: 15px;
+    line-height: 1.5;
+    flex-grow: 1;
+    margin-bottom: 20px;
+  }
+
+  /* Buttons styled consistently with list_posts.html */
+  .dashboard-card .btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(45deg, #5a6edc, #6a3fa4);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(102, 126, 234, 0.3);
+  }
+
+  .btn-success {
+    background: linear-gradient(45deg, #48bb78, #38a169);
+  }
+
+  .btn-success:hover {
+    background: linear-gradient(45deg, #38a169, #2f855a);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(72, 187, 120, 0.3);
+  }
+
+  .btn-warning {
+    background: linear-gradient(45deg, #f6ad55, #dd6b20);
+  }
+
+  .btn-warning:hover {
+    background: linear-gradient(45deg, #ed8936, #c05621);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(237, 137, 54, 0.3);
+  }
+
+  /* Icon styling for each section */
+  .dashboard-icon {
+    font-size: 28px;
+    color: #667eea;
+    margin-right: 8px;
+  }
+
+  /* Connection code card */
+  .connection-code-box {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    text-align: center;
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    user-select: all;
+    transition: transform 0.2s;
+  }
+
+  .connection-code-box:hover {
+    transform: scale(1.03);
+  }
+
+  @media (max-width: 768px) {
+    .dashboard-header h2 {
+      font-size: 28px;
+    }
+    .dashboard-card {
+      padding: 25px;
+    }
+  }
+
+  .switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background: linear-gradient(135deg, #667eea, #764ba2)
+}
+
+input:focus + .slider {
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+.register-form .form-group {
+    margin-bottom: 20px;
+}
+
+.message-container {
+    margin-top: 20px;
+}
+
+.message {
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.message.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.message.info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.message.warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+.message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+</style>
+{% endblock %}
+
+
+
+{% block content %}
+<section class="therapist-dashboard">
+  <div class="dashboard-container">
+
+    <!-- Header -->
+    <div class="dashboard-header">
+      <h2>Welcome, Dr. {{ user.first_name|default:user.email }} 👋</h2>
+      <p>Manage your personal information, update your password, and turn on Two-Factor Authentication.</p>
+      <!-- notifications -->
+      {% if messages %}
+        <div class="messages">
+        {% for message in messages %}
+            <div {% if message.tags %} class="message {{ message.tags }}" {% endif %}>
+            {{ message }}
+            </div>
+        {% endfor %}
+          </div>       
+        {% endif %}
+    </div>
+
+    <!-- Grid with three interactive cards -->
+    <div class="dashboard-grid">
+
+      <!-- update personal information -->
+      <div class="dashboard-card">
+        <h4><i class="fas fa-users dashboard-icon"></i>Personal Information</h4>
+        <p>Click here to update personal information.</p>
+        <a href="{% url 'accounts:update_user_info' %}" class="btn-action btn-primary">
+          <i class="fas fa-user-friends"></i> Update Personal Info
+        </a>
+      </div>
+
+      <!-- Update Password -->
+      <div class="dashboard-card">
+        <h4><i class="fa-solid fa-lock"></i>Password</h4>
+        <p>Click here to update your password</p>
+        <a href="{% url 'accounts:change_password' %}" class="btn-action btn-primary">
+          <i class="fa-solid fa-lock-open"></i> Update Password
+        </a>
+      </div>
+
+      <!-- Turn on 2FA -->
+      <div class="dashboard-card">
+        <h4><i class="fas fa-link dashboard-icon"></i>Two-Factor Authentication</h4>
+        <p>Toggle below to turn 2FA on and off.</p>
+        <label class="switch">
+        <input type="checkbox" id="twofa-switch" {% if user.therapist_profile.twofa %}checked{% endif %}>
+        <span class="slider round"></span>
+        </label>
+        <p id="status-text">
+          {% if user.therapist_profile.twofa %}Enabled{% else %}Disabled{% endif %}
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<script>
+//Event listener to update the twofa switch and text
+document.addEventListener("DOMContentLoaded", () => {
+  //toggle is set to the twofa switch
+  const toggle = document.getElementById("twofa-switch");
+
+  //if toggle exists
+  if (toggle) {
+    //add an event listener when there is a change to toggle
+    toggle.addEventListener("change", async () => {
+      console.log("Toggle clicked!");
+
+      try {
+        //fetch the toggle_twofa view function method post
+        const response = await fetch("{% url 'accounts:toggle_twofa' %}", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie("csrftoken"),
+          },
+        });
+
+        console.log("Response status:", response.status);
+        //if response is ok reload the window to show the new toggle status
+        if (response.ok) {
+          window.location.reload();
+        } else {
+          alert("Error updating 2FA status.");
+          toggle.checked = !toggle.checked;
+        }
+        //if twofa could not update alert user
+      } catch (error) {
+        console.error("Error toggling 2FA:", error);
+        toggle.checked = !toggle.checked;
+      }
+    });
+  }
+
+  // Helper function for CSRF
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith(name + "=")) {
+          cookieValue = decodeURIComponent(cookie.split("=")[1]);
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+});
+</script>
+
+{% endblock %}

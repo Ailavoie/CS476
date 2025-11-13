@@ -1,69 +1,175 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.views.generic import ListView
 from django.views import View
-
+from collections import defaultdict
+from django.db.models.functions import TruncDate 
 from accounts.models import ClientProfile
-from .models import Post
-from .forms import PostForm
-from .observers import Subject, Observer, ConcreteSubject, EmailNotifier, PostNotification
-from django.shortcuts import render
-from django.views.decorators.csrf import csrf_protect
+from .models import DailyPost, MoodPost, Comment
+from .factories import PostFactory
+from .observers import ConcreteSubject, EmailNotifier, TherapistNewCommentNotification
+from django.utils.timezone import localtime
+from .forms import DailyPostForm, MoodPostForm
+from django.contrib import messages
 
-class PostCreateView(LoginRequiredMixin, CreateView):
-    model = Post
-    form_class = PostForm
+## ------------------- CREATE VIEW -------------------
+class PostCreateView(LoginRequiredMixin, View):
     template_name = "posts/create_post.html"
     success_url = reverse_lazy("posts:list_posts")
-    
 
-    print(f"In post create view")
-    def form_valid(self, form):
-        form.instance.client = self.request.user.client_profile
-        print(f"In post create view valid")
+    def get(self, request, *args, **kwargs):
+        # Instantiates the form needed to load CKEditor assets via {{ form.media }}
+        form = DailyPostForm() 
+        return render(request, self.template_name, {'form': form})
 
-        # Save the form first
-        response = super().form_valid(form)
+    def post(self, request, *args, **kwargs):
+        post_type = request.POST.get("post_type")
+        factory = PostFactory()
         
-        # Now notify observers with the saved instance
-        concrete_subject = ConcreteSubject(form.instance)  # Pass the saved Post instance
+        post = factory.create_post(post_type, request.user.client_profile, request.POST)
+        
+        # Notify observers
+        concrete_subject = ConcreteSubject(post)
         concrete_observer = EmailNotifier()
         concrete_subject.attach(concrete_observer)
         concrete_observer_notification = PostNotification()
         concrete_subject.attach(concrete_observer_notification)
         concrete_subject.notify()
-        
-        print(f"notifying observers")
 
-        return response
+        return redirect(self.success_url)
 
+# ------------------- LIST VIEW -------------------
 class PostListView(LoginRequiredMixin, ListView):
-    model = Post
     template_name = "posts/list_posts.html"
     context_object_name = "posts"
 
-# Override get_queryset to filter posts by logged in user
-    def get_queryset(self):
-        return Post.objects.filter(client=self.request.user.client_profile).order_by("-created_at")
+    EMOJI_MAP = {
+        "happy": "😊",
+        "neutral": "😐",
+        "sad": "😞",
+    }
 
-class PostUpdateView(LoginRequiredMixin, UpdateView):
-    model = Post
-    form_class = PostForm
+    def get_queryset(self):
+        daily_posts = DailyPost.objects.filter(client=self.request.user.client_profile)
+        mood_posts = MoodPost.objects.filter(client=self.request.user.client_profile)
+        all_posts = list(daily_posts) + list(mood_posts)
+        # Sort descending by created_at
+        return sorted(all_posts, key=lambda x: x.created_at, reverse=True)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        all_posts = context['posts']
+
+        posts_by_date = defaultdict(list)
+        for post in all_posts:
+            local_created = localtime(post.created_at)
+            display_date = local_created.strftime('%B %d, %Y')
+            date_id = local_created.strftime('%Y-%m-%d')
+
+            post_type_url = post.post_type + 'post' 
+
+            post_dict = {
+                'id': post.pk,
+                'time': local_created.strftime('%I:%M %p'),
+                'raw_date': date_id,
+                'commentary': getattr(post, 'commentary', ''),
+                'edit_url': reverse_lazy('posts:edit_post', kwargs={'post_type': post_type_url, 'pk': post.pk}),
+                'delete_url': reverse_lazy('posts:delete_post', kwargs={'post_type': post_type_url, 'pk': post.pk}),
+            }
+
+            if isinstance(post, DailyPost):
+                comments = post.comments.all().order_by('-created_at')
+            elif isinstance(post, MoodPost):
+                comments = post.comments.all().order_by('-created_at')
+            else:
+                comments = Comment.objects.none()
+
+
+            post_dict['comments'] = comments
+
+            if post.post_type == 'daily':
+                post_dict['text_summary'] = (
+                    getattr(post, 'text', '')[:150] + '...'
+                    if getattr(post, 'text', '') and len(getattr(post, 'text', '')) > 150
+                    else getattr(post, 'text', '')
+                )
+                post_dict['full_text'] = getattr(post, 'text', '')
+
+            elif post.post_type == 'mood':
+                emoji = self.EMOJI_MAP.get(post.mood_emoji, "❓")
+                post_dict['text_summary'] = (
+                    f"Mood: {emoji}  |  Energy: {post.energy_level}  |  "
+                    f"Workout: {'Yes' if post.worked_out else 'No'}  |  "
+                    f"Trigger: {post.mood_trigger[:100]}{'...' if len(post.mood_trigger) > 100 else ''}"
+                )
+                post_dict['full_text'] = (
+                    f"Mood: {emoji}\n"
+                    f"Energy Level: {post.energy_level}\n"
+                    f"Worked Out: {'Yes' if post.worked_out else 'No'}\n"
+                    f"Mood Trigger: {post.mood_trigger}"
+                )
+
+            posts_by_date[display_date].append(post_dict)
+
+
+        context['grouped_posts'] = list(posts_by_date.items())
+        return context
+
+# ------------------- UPDATE VIEW -------------------
+class PostUpdateView(LoginRequiredMixin, View):
     template_name = "posts/edit_post.html"
     success_url = reverse_lazy("posts:list_posts")
-# Override get_queryset to ensure only the owner's posts can be edited
-    def get_queryset(self):
-        return Post.objects.filter(client=self.request.user.client_profile)
 
-class PostDeleteView(LoginRequiredMixin, DeleteView):
-    model = Post
-    template_name = "posts/delete_post.html"
+    def get_object(self):
+        post_type = self.kwargs.get("post_type")
+        pk = self.kwargs.get("pk")
+        model = DailyPost if post_type == "dailypost" else MoodPost
+        return get_object_or_404(model, pk=pk, client=self.request.user.client_profile)
+
+    def get(self, request, pk, post_type):
+        post = self.get_object()
+
+        if post.comments.exists():
+            return redirect(self.success_url)
+
+        FormClass = DailyPostForm if post_type == 'dailypost' else MoodPostForm
+        form = FormClass(instance=post)
+
+        return render(request, self.template_name, {
+            "post": post,
+            "post_type": post_type,
+            "form": form,
+        })
+
+    def post(self, request, pk, post_type):
+        post = self.get_object()
+
+        if post.comments.exists():
+            return redirect(self.success_url)
+
+        factory = PostFactory()
+        factory.update_post(post, request.POST)
+        return redirect(self.success_url)
+
+
+# ------------------- DELETE VIEW -------------------
+class PostDeleteView(LoginRequiredMixin, View):
     success_url = reverse_lazy("posts:list_posts")
-# Override get_queryset to ensure only the owner's posts can be deleted
-    def get_queryset(self):
-        return Post.objects.filter(client=self.request.user.client_profile)
 
+    def get_object(self):
+        post_type = self.kwargs.get("post_type")
+        pk = self.kwargs.get("pk")
+        model = DailyPost if post_type == "dailypost" else MoodPost
+        return get_object_or_404(model, pk=pk, client=self.request.user.client_profile)
+
+    def post(self, request, pk, post_type):
+        post = self.get_object()
+        post.delete()
+        return redirect(self.success_url)
+
+
+# ------------------- THERAPIST VIEWS -------------------
 class TherapistClientListView(LoginRequiredMixin, ListView):
     model = ClientProfile
     template_name = "posts/therapist_client_list.html"
@@ -73,31 +179,115 @@ class TherapistClientListView(LoginRequiredMixin, ListView):
         if hasattr(self.request.user, "therapist_profile"):
             return ClientProfile.objects.filter(therapist=self.request.user.therapist_profile)
         return ClientProfile.objects.none()
-    
+
+
 class TherapistClientPostsView(LoginRequiredMixin, ListView):
-    model = Post
     template_name = "posts/therapist_client_posts.html"
     context_object_name = "posts"
+    
+    # Define the Emoji Mapping for use in the context data
+    EMOJI_MAP = {
+        "happy": "😊",
+        "neutral": "😐",
+        "sad": "😞",
+    }
 
     def get_queryset(self):
         client_id = self.kwargs["client_id"]
+        # Ensure the therapist is correct (good security practice)
         therapist = self.request.user.therapist_profile
-
-        return Post.objects.filter(client__id=client_id, client__therapist=therapist).order_by("-created_at")
+        
+        daily_posts = DailyPost.objects.filter(client__id=client_id, client__therapist=therapist)
+        mood_posts = MoodPost.objects.filter(client__id=client_id, client__therapist=therapist)
+        
+        all_posts = list(daily_posts) + list(mood_posts)
+        return sorted(all_posts, key=lambda x: x.created_at, reverse=True)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         client_id = self.kwargs["client_id"]
         context["client"] = get_object_or_404(ClientProfile, id=client_id)
-        return context
+        
+        # --- CRITICAL ADDITION: Prepare posts for template ---
+        
+        processed_posts = []
+        for post in context['posts']:
+            # 1. Attach the simple post_type string ('daily' or 'mood')
+            #    (Using post.post_type is the preferred approach if available, but isinstance is reliable)
+            post_type_slug = 'daily' if isinstance(post, DailyPost) else 'mood'
+            post.post_type = post_type_slug
+            
+            # 2. Attach the emoji for Mood Posts
+            if post_type_slug == 'mood':
+                # Use getattr safely in case mood_emoji is missing (though it shouldn't be)
+                mood_value = getattr(post, 'mood_emoji', None)
+                post.emoji = self.EMOJI_MAP.get(mood_value, "❓")
+            else:
+                # Set a placeholder for Daily posts
+                post.emoji = None
+            
+            processed_posts.append(post)
 
+        # Replace the original queryset results with the decorated list
+        context['posts'] = processed_posts
+        
+        # ---------------------------------------------------
+        
+        return context
+    
+# ------------------- THERAPIST DISCONNECT CLIENT -------------------
+class TherapistDisconnectClientView(LoginRequiredMixin, View):
+    success_url = reverse_lazy("posts:therapist_clients")
+
+    def post(self, request, client_id):
+        therapist = request.user.therapist_profile
+        client = get_object_or_404(ClientProfile, id=client_id, therapist=therapist)
+
+        client.therapist = None
+        client.save()
+
+        from accounts.models import ConnectionRequest
+        ConnectionRequest.objects.filter(
+            client=client,
+            therapist=therapist,
+            status="accepted"
+        ).update(status="disconnected")
+
+        messages.success(request, f"You have disconnected from {client.first_name} {client.last_name}.")
+        return redirect(self.success_url)
+
+
+# ------------------- COMMENTS -------------------
 class AddCommentView(LoginRequiredMixin, View):
-    def post(self, request, post_id):
-        post = get_object_or_404(Post, id=post_id)
+    def post(self, request, post_id, post_type):
+        model = DailyPost if post_type == "dailypost" else MoodPost
+        post = get_object_or_404(model, id=post_id)
 
         if hasattr(request.user, "therapist_profile") and post.client.therapist == request.user.therapist_profile:
-            commentary = request.POST.get("commentary", "")
-            post.commentary = commentary
-            post.save()
+            text = request.POST.get("commentary", "")
+
+            Comment.objects.create(
+                therapist=request.user.therapist_profile,
+                client=post.client,
+                daily_post=post if isinstance(post, DailyPost) else None,
+                mood_post=post if isinstance(post, MoodPost) else None,
+                text=text
+            )
+
+            concrete_subject = ConcreteSubject(post)
+            concrete_observer = TherapistNewCommentNotification()
+            concrete_subject.attach(concrete_observer)
+            concrete_subject.notify()
+            concrete_subject.detach(concrete_observer)
 
         return redirect("posts:therapist_client_posts", client_id=post.client.id)
+
+
+# ------------------- CLEAR NOTIFICATIONS -------------------
+class ClearNotificationsView(LoginRequiredMixin, View):
+    def post(self, request, post_id, post_type):
+        model = DailyPost if post_type == "daily" else MoodPost
+        post = get_object_or_404(model, id=post_id)
+        post.therapist_comment_notification = False
+        post.save()
+        return redirect("posts:list_posts")

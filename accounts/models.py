@@ -13,28 +13,30 @@ COUNTRY_CHOICES = (
     ('CA', 'Canada'),
 )
 
-
 REGION_DATA = {
-'US': [
-('AL', 'Alabama'), ('AK', 'Alaska'), ('AZ', 'Arizona'), ('AR', 'Arkansas'), ('CA', 'California'),
-('CO', 'Colorado'), ('CT', 'Connecticut'), ('DE', 'Delaware'), ('FL', 'Florida'), ('GA', 'Georgia'),
-('HI', 'Hawaii'), ('ID', 'Idaho'), ('IL', 'Illinois'), ('IN', 'Indiana'), ('IA', 'Iowa'),
-('KS', 'Kansas'), ('KY', 'Kentucky'), ('LA', 'Louisiana'), ('ME', 'Maine'), ('MD', 'Maryland'),
-('MA', 'Massachusetts'), ('MI', 'Michigan'), ('MN', 'Minnesota'), ('MS', 'Mississippi'), ('MO', 'Missouri'),
-('MT', 'Montana'), ('NE', 'Nebraska'), ('NV', 'Nevada'), ('NH', 'New Hampshire'), ('NJ', 'New Jersey'),
-('NM', 'New Mexico'), ('NY', 'New York'), ('NC', 'North Carolina'), ('ND', 'North Dakota'), ('OH', 'Ohio'),
-('OK', 'Oklahoma'), ('OR', 'Oregon'), ('PA', 'Pennsylvania'), ('RI', 'Rhode Island'), ('SC', 'South Carolina'),
-('SD', 'South Dakota'), ('TN', 'Tennessee'), ('TX', 'Texas'), ('UT', 'Utah'), ('VT', 'Vermont'),
-('VA', 'Virginia'), ('WA', 'Washington'), ('WV', 'West Virginia'), ('WI', 'Wisconsin'), ('WY', 'Wyoming'),
-],
-
-'CA': [
-('AB', 'Alberta'), ('BC', 'British Columbia'), ('MB', 'Manitoba'), ('NB', 'New Brunswick'),
-('NL', 'Newfoundland and Labrador'), ('NS', 'Nova Scotia'), ('NT', 'Northwest Territories'),
-('NU', 'Nunavut'), ('ON', 'Ontario'), ('PE', 'Prince Edward Island'), ('QC', 'Quebec'),
-('SK', 'Saskatchewan'), ('YT', 'Yukon'),
-],
+    'US': [
+        ('AL', 'Alabama'), ('AK', 'Alaska'), ('AZ', 'Arizona'), ('AR', 'Arkansas'), ('CA', 'California'),
+        ('CO', 'Colorado'), ('CT', 'Connecticut'), ('DE', 'Delaware'), ('FL', 'Florida'), ('GA', 'Georgia'),
+        ('HI', 'Hawaii'), ('ID', 'Idaho'), ('IL', 'Illinois'), ('IN', 'Indiana'), ('IA', 'Iowa'),
+        ('KS', 'Kansas'), ('KY', 'Kentucky'), ('LA', 'Louisiana'), ('ME', 'Maine'), ('MD', 'Maryland'),
+        ('MA', 'Massachusetts'), ('MI', 'Michigan'), ('MN', 'Minnesota'), ('MS', 'Mississippi'), ('MO', 'Missouri'),
+        ('MT', 'Montana'), ('NE', 'Nebraska'), ('NV', 'Nevada'), ('NH', 'New Hampshire'), ('NJ', 'New Jersey'),
+        ('NM', 'New Mexico'), ('NY', 'New York'), ('NC', 'North Carolina'), ('ND', 'North Dakota'), ('OH', 'Ohio'),
+        ('OK', 'Oklahoma'), ('OR', 'Oregon'), ('PA', 'Pennsylvania'), ('RI', 'Rhode Island'), ('SC', 'South Carolina'),
+        ('SD', 'South Dakota'), ('TN', 'Tennessee'), ('TX', 'Texas'), ('UT', 'Utah'), ('VT', 'Vermont'),
+        ('VA', 'Virginia'), ('WA', 'Washington'), ('WV', 'West Virginia'), ('WI', 'Wisconsin'), ('WY', 'Wyoming'),
+    ],
+    'CA': [
+        ('AB', 'Alberta'), ('BC', 'British Columbia'), ('MB', 'Manitoba'), ('NB', 'New Brunswick'),
+        ('NL', 'Newfoundland and Labrador'), ('NS', 'Nova Scotia'), ('NT', 'Northwest Territories'),
+        ('NU', 'Nunavut'), ('ON', 'Ontario'), ('PE', 'Prince Edward Island'), ('QC', 'Quebec'),
+        ('SK', 'Saskatchewan'), ('YT', 'Yukon'),
+    ],
 }
+
+# -------------------------
+# Custom User Model
+# -------------------------
 class User(AbstractUser):
     username = models.CharField(
         max_length=150,
@@ -43,7 +45,6 @@ class User(AbstractUser):
         unique=False
     )
     email = models.EmailField(unique=True)
-
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
 
@@ -58,8 +59,15 @@ class User(AbstractUser):
     def __str__(self):
         return self.email
 
+# -------------------------
+# Client Profile
+# -------------------------
 class ClientProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="client_profile")
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="client_profile"
+    )
 
     date_of_birth = models.DateField()
     first_name = models.CharField(max_length=100)
@@ -68,10 +76,9 @@ class ClientProfile(models.Model):
     province = models.CharField(max_length=100, blank=True, null=True)
     street = models.CharField(max_length=255, blank=True, null=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
-
     emergency_contact_name = models.CharField(max_length=100, blank=True, null=True)
     emergency_contact_phone = models.CharField(max_length=20, blank=True, null=True)
-
+    twofa = models.BooleanField(null = True, default=False)
     therapist = models.ForeignKey(
         "TherapistProfile",
         on_delete=models.SET_NULL,
@@ -83,9 +90,15 @@ class ClientProfile(models.Model):
     def __str__(self):
         return f"Client: {self.first_name} {self.last_name}"
 
-
+# -------------------------
+# Therapist Profile
+# -------------------------
 class TherapistProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="therapist_profile")
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="therapist_profile"
+    )
 
     date_of_birth = models.DateField()
     first_name = models.CharField(max_length=100)
@@ -99,8 +112,9 @@ class TherapistProfile(models.Model):
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     rating = models.FloatField(default=0.0)
 
+    twofa = models.BooleanField(null = True, default=False)
     connection_code = models.CharField(max_length=8, unique=True, blank=True)
-    
+
     def save(self, *args, **kwargs):
         if not self.connection_code:
             self.connection_code = str(uuid.uuid4())[:8]
@@ -109,12 +123,23 @@ class TherapistProfile(models.Model):
     def __str__(self):
         return f"Therapist: {self.first_name} {self.last_name}"
 
+# -------------------------
+# Connection Request
+# -------------------------
 class ConnectionRequest(models.Model):
-    client = models.ForeignKey(ClientProfile, on_delete=models.CASCADE, related_name="sent_requests")
-    therapist = models.ForeignKey(TherapistProfile, on_delete=models.CASCADE, related_name="received_requests")
+    client = models.ForeignKey(
+        ClientProfile,
+        on_delete=models.CASCADE,
+        related_name="sent_requests"
+    )
+    therapist = models.ForeignKey(
+        TherapistProfile,
+        on_delete=models.CASCADE,
+        related_name="received_requests"
+    )
     status = models.CharField(
-        max_length=10,
-        choices=[("pending", "Pending"), ("accepted", "Accepted"), ("rejected", "Rejected")],
+        max_length=20,
+        choices=[("pending", "Pending"), ("accepted", "Accepted"), ("rejected", "Rejected"), ("disconnected", "Disconnected"),("deleted","Deleted")],
         default="pending"
     )
     created_at = models.DateTimeField(auto_now_add=True)

@@ -1,45 +1,43 @@
+<!-- This is the HTML code for the Navigation bar at the bottom of the page. It is inheirited by all other httml files -->
 <footer class="footer">
     <div class="container">
         <div class="footer-content">
+            <!-- class for logo and site description -->
             <div class="footer-section">
+                <!-- class for logo -->
                 <div class="footer-brand">
                     <div class="brand-icon">
                         <i class="fas fa-brain"></i>
                     </div>
                     <span class="brand-text">Mindlink</span>
                 </div>
+                <!-- class for description -->
                 <p class="footer-description">
-                    Connecting hearts and minds for holistic mental wellbeing.
-                    Your safe space to grow and heal.
+                    Connecting Clients and Therapists to collaborate towards better mental health.
+                    This is a safe space for you to grow and heal.
                 </p>
-                <div class="footer-social">
-                    <a href="#" class="social-link"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
-                    <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
-                    <a href="#" class="social-link"><i class="fab fa-linkedin-in"></i></a>
-                </div>
             </div>
-
+            <!-- class for platform urls -->
             <div class="footer-section">
                 <h4>Platform</h4>
                 <ul class="footer-links">
-                    <li><a href="{% url 'core:home' %}">Home</a></li>
-                    <li><a href="{% url 'core:about' %}">About</a></li>
+                 {% if user.is_authenticated and user.is_client %}
+                 <!-- Clients see this -->   
+                    <li><a href="{% url 'accounts:dashboard' %}">Home</a></li>
+                    <li><a href="{% url 'accounts:therapist_list' %}">Therapists</a></li>
+                    <li><a href="{% url 'posts:list_posts' %}">Posts</a></li>
+                 {% elif user.is_authenticated and user.is_therapist %}
+                 <!-- Therapists see this -->
+                    <li><a href="{% url 'accounts:dashboard' %}">Home</a></li>
+                    <li><a href="{% url 'posts:therapist_clients' %}">Clients</a></li>
+                 {% endif %}
+                    {% if not user.is_authenticated %}
                     <li><a href="{% url 'accounts:register' %}">Register</a></li>
                     <li><a href="{% url 'accounts:login' %}">Login</a></li>
+                    {% endif %}
                 </ul>
             </div>
-
-            <div class="footer-section">
-                <h4>Support</h4>
-                <ul class="footer-links">
-                    <li><a href="#">Help Center</a></li>
-                    <li><a href="#">FAQ</a></li>
-                    <li><a href="#">Contact</a></li>
-                    <li><a href="#">Crisis Lines</a></li>
-                </ul>
-            </div>
-
+            <!-- class for helplines -->
             <div class="footer-section">
                 <h4>Help Lines</h4>
                 <div class="help-lines">
@@ -54,14 +52,12 @@
                 </div>
             </div>
         </div>
-
+        <!-- class for group member names -->
         <div class="footer-bottom">
             <div class="footer-bottom-content">
-                <p>&copy; {% now "Y" %} Mindlink. All rights reserved.</p>
+                <p> Mindlink created by: </p>
                 <div class="footer-legal">
-                    <a href="#">Terms of Service</a>
-                    <a href="#">Privacy Policy</a>
-                    <a href="#">Cookies</a>
+                    <p>Ashley Lavoie, Chaitanya Patel, Nicolás Fernández, and Brady Schmidt </p>
                 </div>
             </div>
         </div>

@@ -1,14 +1,128 @@
 {% extends "base.html" %}
-
 {% block title %}
-  Mindlink - Create New Post
+Mindlink - Create New Post
 {% endblock %}
-
 {% block extra_css %}
-  {% load static %}
-  <link rel="stylesheet" href="{% static 'posts/css/style.css' %}">
-{% endblock %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'posts/css/style.css' %}">
+<style>
+/* --- CSS STYLES --- */
+.form-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: left;
+}
+.form-group label {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 6px;
+}
+.form-control {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+}
+/* CKEditor full width */
+.cke_contents, .cke { width: 100% !important; }
 
+/* Mic Button */
+#mic-button {
+  display: inline-block;
+  margin: 15px 0;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+#mic-button.btn-listening {
+  background-color: #ff4757;
+  color: white;
+  box-shadow: 0 0 10px rgba(255, 71, 87, 0.5);
+  animation: pulse 1s infinite;
+}
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.word-count-display {
+  margin-top: 15px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  font-size: 14px;
+  color: white;
+  width: fit-content; 
+  display: flex; 
+  gap: 30px;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+.word-count-display .count-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.unsaved-warning, .validation-warning {
+  display: none;
+  color: #ff6b6b;
+  font-size: 0.9em;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border: 1px solid #ff6b6b;
+  background-color: #ffeaea;
+  border-radius: 4px;
+}
+.unsaved-warning.show, .validation-warning.show {
+  display: block;
+}
+
+/* Mood emoji styles (fixed size & hit area for reliable clicking/tapping) */
+#emojiOptions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.emoji-option {
+  font-size: 2rem;               /* explicit size */
+  cursor: pointer;               /* show pointer */
+  padding: 8px;                  /* consistent padding */
+  border-radius: 10px;
+  transition: all 0.18s ease;
+  user-select: none;
+  display: inline-flex;          /* ensures consistent size and centering */
+  align-items: center;
+  justify-content: center;
+  width: 48px;                   /* fixed hit area */
+  height: 48px;
+  line-height: 1;
+  pointer-events: auto;
+}
+.emoji-option:hover {
+  transform: scale(1.08);
+  background-color: #f3f4f6;
+}
+.emoji-option:focus {
+  outline: 2px solid rgba(78,115,223,0.25);
+  outline-offset: 2px;
+}
+.emoji-selected {
+  background-color: #e0e7ff;
+  border: 2px solid #4e73df;
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(78, 115, 223, 0.18);
+}
+</style>
+{% endblock %}
 {% block content %}
 <section class="new-post">
   <div class="container">
@@ -17,14 +131,331 @@
       <p>Share your thoughts and experiences.</p>
     </div>
     <div class="form-container">
-      <form method="post">
+      <form method="post" id="journalForm">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label for="postType">Which type of post do you want to enter?</label>
+          <select name="post_type" id="postType" class="form-control" required>
+            <option value="" disabled selected>-- Select post type --</option>
+            <option value="daily">Daily</option>
+            <option value="mood">Mood</option>
+          </select>
+        </div>
+
+        <div id="dynamicFields"></div>
+
+        <p id="unsavedWarning" class="unsaved-warning">
+          <i class="fas fa-exclamation-triangle"></i> You have unsaved changes.
+        </p>
+
+        <p id="validationWarning" class="validation-warning">
+          <i class="fas fa-exclamation-circle"></i>
+          <span id="validationMessage"></span>
+        </p>
+
+        <button type="submit" class="btn btn-primary" style="margin-top: 20px;">
           <i class="fas fa-paper-plane"></i> Publish
         </button>
       </form>
     </div>
   </div>
 </section>
+{% endblock %}
+
+
+{% block extra_js %}
+{{ form.media }}
+<script>
+// ======== Unsaved Changes =========
+let hasUnsavedChanges = false;
+window.addEventListener('beforeunload', function(e) {
+  if (hasUnsavedChanges) {
+    e.preventDefault();
+    e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+    return e.returnValue;
+  }
+});
+
+// ======== GLOBAL CKEDITOR INSTANCE =========
+let editorInstance = null;
+
+// ===== Helper: Show validation messages visually =====
+function showValidationMessage(msg) {
+  const warning = document.getElementById('validationWarning');
+  const messageEl = document.getElementById('validationMessage');
+  if (!warning || !messageEl) return;
+  messageEl.textContent = msg;
+  warning.classList.add('show');
+  // auto-hide after 3s
+  setTimeout(() => warning.classList.remove('show'), 3000);
+}
+
+// ===== Helper: Set Unsaved Changes Flag =====
+function setUnsavedChanges() {
+  if (!hasUnsavedChanges) {
+    hasUnsavedChanges = true;
+    const unsaved = document.getElementById('unsavedWarning');
+    if (unsaved) unsaved.classList.add('show');
+  }
+}
+
+// ======== CKEditor Setup (Optimized) =========
+function setupCKEditor(textareaId) {
+  if (typeof CKEDITOR === 'undefined') {
+      console.error('CKEDITOR object is undefined. Check asset loading.');
+      return;
+  }
+  
+  if (CKEDITOR.instances[textareaId]) CKEDITOR.instances[textareaId].destroy(true);
+  
+  CKEDITOR.replace(textareaId);
+  
+  CKEDITOR.instances[textareaId].on('instanceReady', function(evt) {
+    editorInstance = evt.editor;
+
+    const updateWordCount = () => {
+      const content = editorInstance.getData();
+      const textOnly = content
+        .replace(/<[^>]*>/g, '')   // remove HTML tags
+        .replace(/&nbsp;/g, ' ')   // handle CKEditor non-breaking spaces
+        .trim();
+
+      // Character count: exclude spaces, tabs, newlines
+      const chars = textOnly.replace(/[ \t\n\r]+/g, '').length;
+
+      // Word count: ignore blank segments, multiple spaces, newlines
+      const wordsArray = textOnly.split(/\s+/).filter(w => w.length > 0);
+      const words = wordsArray.length;
+
+      const wordCountEl = document.getElementById('wordCount');
+      const charCountEl = document.getElementById('charCount');
+      if (wordCountEl) wordCountEl.textContent = words;
+      if (charCountEl) charCountEl.textContent = chars;
+    };
+    
+    // Initial count (do not set hasUnsavedChanges here)
+    updateWordCount();
+
+    // Listeners to set the flag ONLY when content changes
+    editorInstance.on('change', () => { setUnsavedChanges(); updateWordCount(); });
+    editorInstance.on('key', () => setTimeout(() => { setUnsavedChanges(); updateWordCount(); }, 10));
+    editorInstance.on('paste', () => setTimeout(() => { setUnsavedChanges(); updateWordCount(); }, 100));
+  });
+}
+
+// ======== Mic Setup =========
+function setupMicButton() {
+  const micButton = document.getElementById('mic-button');
+  if (!micButton) return;
+  if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = new SpeechRecognition();
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.lang = 'en-US';
+    let isListening = false;
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++)
+        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+      if (finalTranscript && editorInstance) {
+        editorInstance.insertHtml(finalTranscript + ' ');
+        // Firing 'change' will trigger setUnsavedChanges
+        editorInstance.fire('change'); 
+      }
+    };
+    recognition.onstart = () => {
+      micButton.textContent = 'Dictating... (Click to Stop)';
+      micButton.classList.add('btn-listening');
+      isListening = true;
+    };
+    recognition.onend = () => {
+      micButton.innerHTML = '<i class="fas fa-microphone"></i> Start Voice Input';
+      micButton.classList.remove('btn-listening');
+      isListening = false;
+    };
+    micButton.addEventListener('click', () => {
+      if (!editorInstance) return showValidationMessage("Editor not ready.");
+      isListening ? recognition.stop() : recognition.start();
+    });
+  } else {
+    micButton.style.display = 'none';
+  }
+}
+
+// ======== Factory Function =========
+const dynamicFields = document.getElementById('dynamicFields');
+const postTypeSelect = document.getElementById('postType');
+
+const PostFactory = {
+  create: function(type) {
+    let elements = {};
+    if (type === 'mood') {
+      // Destroy CKEditor instance when switching away from 'Daily'
+      if (editorInstance) {
+        editorInstance.destroy(true);
+        editorInstance = null;
+      }
+      
+      dynamicFields.innerHTML = `
+        <div class="mood-question">
+          <label>1) What is your current mood?</label>
+          <div id="emojiOptions">
+            <span class="emoji-option" role="button" tabindex="0" data-value="happy">😊</span>
+            <span class="emoji-option" role="button" tabindex="0" data-value="neutral">😐</span>
+            <span class="emoji-option" role="button" tabindex="0" data-value="sad">😞</span>
+          </div>
+          <input type="hidden" name="mood_emoji" id="moodEmoji">
+        </div>
+        <div class="mood-question">
+          <label>2) Energy level (1-5)</label>
+          <input type="number" name="energy_level" min="1" max="5" class="form-control" required>
+        </div>
+        <div class="mood-question">
+          <label>3) Did you work out today?</label>
+          <select name="worked_out" class="form-control" required>
+            <option value="" disabled selected>-- Select an option --</option>
+            <option value="True">Yes</option>
+            <option value="False">No</option>
+          </select>
+        </div>
+        <div class="mood-question">
+          <label>4) What triggered this mood?</label>
+          <textarea id="mood_trigger" name="mood_trigger" rows="3" class="form-control" required></textarea>
+        </div>
+      `;
+      // Grab the newly created nodes and attach listeners right away
+      elements.emojiOptions = Array.from(document.querySelectorAll('#emojiOptions .emoji-option'));
+      elements.moodEmoji = document.getElementById('moodEmoji');
+      
+      // Track changes on other input fields for moodpost
+      const moodInputs = dynamicFields.querySelectorAll('.form-control, textarea');
+      moodInputs.forEach(input => {
+          input.addEventListener('change', setUnsavedChanges);
+          input.addEventListener('input', setUnsavedChanges);
+      });
+
+      // Attach click and keyboard (Enter/Space) handlers to each emoji option
+      elements.emojiOptions.forEach(el => {
+        const selectEmoji = () => {
+          // remove previous selection
+          elements.emojiOptions.forEach(e => e.classList.remove('emoji-selected'));
+          // mark current
+          el.classList.add('emoji-selected');
+          // set hidden input
+          if (elements.moodEmoji) elements.moodEmoji.value = el.dataset.value || '';
+          // show unsaved indicator
+          setUnsavedChanges();
+        };
+
+        el.addEventListener('click', selectEmoji);
+        el.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
+            ev.preventDefault();
+            selectEmoji();
+          }
+        });
+      });
+    } else if (type === 'daily') {
+      dynamicFields.innerHTML = `
+        <button type="button" id="mic-button"><i class="fas fa-microphone"></i> Start Voice Input</button>
+        <div style="margin-bottom:10px">
+          <textarea id="text" name="text"></textarea>
+        </div>
+        <div class="word-count-display">
+          <div class="count-item"><i class="fas fa-font"></i> Words: <strong id="wordCount">0</strong></div>
+          <div class="count-item"><i class="fas fa-keyboard"></i> Chars: <strong id="charCount">0</strong></div>
+        </div>
+      `;
+      elements.textarea = document.getElementById('text');
+      elements.micButton = document.getElementById('mic-button');
+    }
+    return elements;
+  }
+};
+
+// ======== Event Listener for Post Type Change (FIX APPLIED HERE) =========
+postTypeSelect.addEventListener('change', function() {
+  const type = this.value;
+  const elements = PostFactory.create(type);
+  
+  // Daily post setup
+  if (type === 'daily' && elements.textarea) {
+    // Keep this small delay (setTimeout(0))! It ensures the <textarea> is fully created in the DOM
+    // before the setup functions are called.
+    setTimeout(() => {
+      setupCKEditor('text'); 
+      setupMicButton();
+    }, 0); 
+  }
+  
+  // *** REMOVED: setUnsavedChanges(); ***
+  // We rely on the specific input listeners (CKEditor, emoji, etc.) to set the flag.
+});
+
+// ======== Form Validation Before Submit =========
+document.getElementById('journalForm').addEventListener('submit', function(e) {
+  const postType = document.getElementById('postType').value;
+  // Clear previous validation message
+  const validationWarning = document.getElementById('validationWarning');
+  if (validationWarning) validationWarning.classList.remove('show');
+
+  if (!postType) return; // browser handles required select
+
+  // Daily validation: ensure editor not empty / whitespace-only
+  if (postType === 'daily') {
+    if (!editorInstance) {
+      showValidationMessage('Editor not ready. Please wait a moment.');
+      e.preventDefault();
+      return;
+    }
+
+    const rawText = editorInstance.getData()
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .trim();
+
+    // Remove whitespace to detect any visible characters
+    const visibleChars = rawText.replace(/\s+/g, '');
+    if (visibleChars.length === 0) {
+      showValidationMessage('Your daily entry cannot be empty or only whitespace.');
+      e.preventDefault();
+      return;
+    }
+  }
+
+  // Mood validation: ensure emoji selected and required fields present
+  if (postType === 'mood') {
+    const moodEmojiInput = document.getElementById('moodEmoji');
+    if (!moodEmojiInput || moodEmojiInput.value.trim() === '') {
+      showValidationMessage('Please select your current mood (emoji) before submitting.');
+      e.preventDefault();
+      return;
+    }
+
+    const energyEl = document.querySelector('[name="energy_level"]');
+    const workedEl = document.querySelector('[name="worked_out"]');
+    const triggerEl = document.getElementById('mood_trigger');
+
+    if (!energyEl || !energyEl.value || energyEl.value < 1 || energyEl.value > 5) {
+      showValidationMessage('Please enter a valid energy level (1-5).');
+      e.preventDefault();
+      return;
+    }
+    if (!workedEl || workedEl.value.trim() === '') {
+      showValidationMessage('Please indicate whether you worked out today.');
+      e.preventDefault();
+      return;
+    }
+    if (!triggerEl || triggerEl.value.trim().length === 0) {
+      showValidationMessage('Please describe what triggered this mood.');
+      e.preventDefault();
+      return;
+    }
+  }
+
+  // passed validation
+  hasUnsavedChanges = false;
+});
+</script>
 {% endblock %}

@@ -2,45 +2,244 @@
 {% load static %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'accounts/css/style.css' %}">
+<link rel="stylesheet" href="{% static 'accounts/css/style.css' %}">
+<style>
+  /* Container */
+  .connect-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 0;
+  }
+
+  .connect-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 520px;
+    text-align: center;
+  }
+
+  .form-title {
+    font-size: 28px;
+    color: #2d3748;
+    margin-bottom: 25px;
+  }
+
+  /* Alerts */
+  .alert {
+    padding: 15px 20px;
+    border-radius: 10px;
+    font-weight: 500;
+    margin-bottom: 25px;
+  }
+
+  .alert-success { background: #e6fffa; color: #2c7a7b; border-left: 4px solid #38b2ac; }
+  .alert-warning { background: #fffaf0; color: #b7791f; border-left: 4px solid #dd6b20; }
+  .alert-error { background: #fff5f5; color: #c53030; border-left: 4px solid #e53e3e; }
+  .alert-info { background: #ebf8ff; color: #2b6cb0; border-left: 4px solid #3182ce; }
+
+  /* Buttons */
+  .btn {
+    display: inline-block;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    border: none;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  .btn:hover {
+    background: linear-gradient(45deg, #5a6edc, #6a3fa4);
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary {
+    background: linear-gradient(45deg, #63b3ed, #3182ce);
+  }
+
+  .btn-secondary:hover {
+    background: linear-gradient(45deg, #4299e1, #2b6cb0);
+    transform: translateY(-2px);
+  }
+
+  .btn-danger {
+    background: linear-gradient(45deg, #f56565, #e53e3e);
+  }
+
+  .btn-danger:hover {
+    background: linear-gradient(45deg, #e53e3e, #c53030);
+    transform: translateY(-2px);
+  }
+
+  .message-container { margin-top: 25px; }
+
+  /* Modal styles */
+  .modal { display: none; }
+  .modal.is-open { display: block; }
+  .modal__overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .modal__container {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  }
+  .modal__header { margin-bottom: 20px; }
+  .modal__title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #2d3748;
+  }
+  .modal__close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    float: right;
+    color: #718096;
+  }
+  .modal__content {
+    margin-bottom: 30px;
+    color: #4a5568;
+    font-size: 16px;
+  }
+  .modal__footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .modal__btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .modal__btn-danger {
+    background: #f56565;
+    color: white;
+  }
+  .modal__btn-danger:hover {
+    background: #e53e3e;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="container register-container">
-    <div class="register-card">
-        <h2 class="form-title">Connect with your therapist</h2>
+<div class="connect-container">
+  <div class="connect-card">
+    <h2 class="form-title">Connect with your therapist</h2>
 
-        <form method="post" class="register-form connect-form">
-            {% csrf_token %}
+    {% if has_therapist %}
+      <!-- 🔒 User already connected -->
+      <div class="alert alert-info">
+        You are already connected with 
+        <strong>{{ current_therapist.user.first_name }} {{ current_therapist.user.last_name }}</strong>.<br><br>
+        To send a request to another therapist, please disconnect from your current one first.
+      </div>
 
-            {% if form.errors %}
-                <ul class="errorlist">
-                    {% for field in form %}
-                        {% for error in field.errors %}
-                            <li>{{ field.label }}: {{ error }}</li>
-                        {% endfor %}
-                    {% endfor %}
-                </ul>
-            {% endif %}
+      <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-danger"
+                data-micromodal-trigger="disconnectModal"
+                onclick="prepareDisconnect('{{ current_therapist.id }}', 'send-request')">
+        <i class="fas fa-unlink"></i> Disconnect
+        </button>
+        <a href="{% url 'accounts:dashboard' %}" class="btn btn-secondary">
+          <i class="fas fa-home"></i> Go to Dashboard
+        </a>
+      </div>
 
-            {% for field in form %}
-                <div class="form-group">
-                    <label for="{{ field.id_for_label }}">
-                        {{ field.label }}
-                    </label>
-                    {{ field }}
-                </div>
-            {% endfor %}
-
-            <button type="submit" class="btn btn-primary">Send Request</button>
-        </form>
+    {% else %}
+      <form method="post" class="register-form connect-form">
+        {% csrf_token %}
         {% if messages %}
-            <div class="message-container">
-                {% for message in messages %}
-                    <p class="message {{ message.tags }}">{{ message }}</p>
-                {% endfor %}
-            </div>
+          <div class="message-container">
+            {% for message in messages %}
+              {% if message.tags == "success" %}
+                <div class="alert alert-success">{{ message }}</div>
+              {% elif message.tags == "error" %}
+                <div class="alert alert-error">{{ message }}</div>
+              {% elif message.tags == "warning" %}
+                <div class="alert alert-warning">{{ message }}</div>
+              {% else %}
+                <div class="alert alert-info">{{ message }}</div>
+              {% endif %}
+            {% endfor %}
+          </div>
         {% endif %}
-    </div>
+
+        {% for field in form %}
+          <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+          </div>
+        {% endfor %}
+
+        <button type="submit" class="btn">Send Request</button>
+      </form>
+    {% endif %}
+  </div>
 </div>
+
+<!-- Disconnect Confirmation Modal -->
+<div class="modal micromodal-slide" id="disconnectModal" aria-hidden="true">
+  <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+    <div class="modal__container" role="dialog" aria-modal="true">
+      <header class="modal__header">
+        <h2 class="modal__title">Disconnect from Therapist?</h2>
+        <button class="modal__close" aria-label="Close modal" data-micromodal-close>×</button>
+      </header>
+      <main class="modal__content">
+        <p>Are you sure you want to disconnect from your therapist?</p>
+        <p><strong>This action cannot be undone.</strong></p>
+      </main>
+      <footer class="modal__footer">
+        <form id="disconnectForm" method="post" action="">
+          {% csrf_token %}
+          <button type="submit" class="modal__btn modal__btn-danger">Yes, Disconnect</button>
+          <button type="button" class="modal__btn" data-micromodal-close>Cancel</button>
+        </form>
+      </footer>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/micromodal/dist/micromodal.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    MicroModal.init({
+      openTrigger: 'data-micromodal-trigger',
+      closeTrigger: 'data-micromodal-close',
+      disableScroll: true,
+      disableFocus: true,
+      awaitCloseAnimation: true
+    });
+  });
+
+  function prepareDisconnect(therapistId, nextPage) {
+    const form = document.getElementById('disconnectForm');
+    const nextParam = nextPage ? `?next=${nextPage}` : '';
+    form.action = `/accounts/disconnect/${therapistId}/${nextParam}`;
+  }
+</script>
 {% endblock %}

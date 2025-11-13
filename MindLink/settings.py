@@ -14,8 +14,13 @@ from pathlib import Path
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -26,7 +31,7 @@ SECRET_KEY = 'django-insecure-$qmcmvn(1ueusxflf$3#c&n$0_$tniw+47czik79no=b*0=4i!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'lavoie8a.pythonanywhere.com']
 
 CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000', 'http://localhost:8000']
 
@@ -40,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "accounts",
+    'ckeditor',
     "core",
     "posts",
 ]
@@ -55,6 +61,53 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'MindLink.urls'
+
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'Full',
+        'width': '100%',
+        'height': 400,
+        'language': 'en',
+        
+        # Remove image plugins but keep everything else
+        'removePlugins': 'image,uploadimage,uploadfile',
+        'removePlugins': 'elementspath',
+        #'contentsCss': ['/static/core/css/core.css', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'], 
+        
+        # Custom toolbar with all features (uncomment and customize if needed)
+        'toolbar_Full': [
+            ['Source', '-', 'Save', 'NewPage', 'Preview', 'Print', '-', 'Templates'],
+            ['Cut', 'Copy', 'Paste', 'PasteText', 'PasteFromWord', '-', 'Undo', 'Redo'],
+            ['Find', 'Replace', '-', 'SelectAll', '-', 'Scayt'],
+            '/',
+            ['Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript', '-', 'RemoveFormat'],
+            ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote', 'CreateDiv'],
+            ['JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
+            ['Link', 'Unlink', 'Anchor'],
+            '/',
+            ['Styles', 'Format', 'Font', 'FontSize'],
+            ['TextColor', 'BGColor'],
+            ['Table', 'HorizontalRule', 'Smiley', 'SpecialChar', 'PageBreak'],
+            ['Maximize', 'ShowBlocks'],
+        ],
+        
+        # Additional settings for better experience
+        'format_tags': 'p;h1;h2;h3;h4;h5;h6;pre;address;div',
+        'font_names': 'Arial/Arial, Helvetica, sans-serif;'
+                      'Times New Roman/Times New Roman, Times, serif;'
+                      'Verdana;Courier New;Georgia;Trebuchet MS;Comic Sans MS',
+        'fontSize_sizes': '8/8px;10/10px;12/12px;14/14px;16/16px;18/18px;20/20px;24/24px;28/28px;36/36px;48/48px',
+        
+        # Content filtering
+        'allowedContent': True,
+        'extraAllowedContent': 'div(*);p(*);span(*)',
+        
+        # Paste from Word settings
+        'pasteFromWordRemoveFontStyles': False,
+        'pasteFromWordRemoveStyles': False,
+    }
+}   
+
 
 TEMPLATES = [
     {
@@ -80,7 +133,7 @@ WSGI_APPLICATION = 'MindLink.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
 
@@ -122,11 +175,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
 
-STATICFILES_DIRS = [
-    BASE_DIR / "static",  # carpeta global para CSS/JS comunes (navbar, base.css, etc.)
-]
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

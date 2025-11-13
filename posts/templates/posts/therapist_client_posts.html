@@ -20,7 +20,6 @@
       <a href="{% url 'posts:therapist_clients' %}" class="btn-secondary">← Back to Client List</a>
     </div>
 
-
     <div class="posts-container">
       {% if posts %}
         <ul class="posts-list">
@@ -32,22 +31,44 @@
               </div>
 
               <div class="post-text">
-                <p><strong>Post:</strong> {{ post.text }}</p>
+                {% if post.post_type == 'daily' %}
+                    <p><strong>Daily Post Details:</strong></p>
+                    <p>{{ post.text|safe }}</p>
+                {% elif post.post_type == 'mood' %}
+                    <p><strong>Mood Post Details:</strong></p>
+                    <ul>
+                        <li>Mood: {{ post.mood_emoji }}</li>
+                        <li>Energy Level: {{ post.energy_level }}</li>
+                        <li>Worked Out: {% if post.worked_out %}Yes{% else %}No{% endif %}</li>
+                        <li>Trigger: {{ post.mood_trigger }}</li>
+                    </ul>
+                {% endif %}
               </div>
 
-              <form method="post" action="{% url 'posts:add_comment' post.id %}" class="comment-form">
+              {% if post.comments.all %}
+                <div class="existing-comments">
+                  <strong>Therapist Comments:</strong>
+                  <ul>
+                    {% for comment in post.comments.all %}
+                      <li>
+                        <p>{{ comment.text }}</p>
+                        <small><em>By {{ comment.therapist.user.first_name }} {{ comment.therapist.user.last_name }} on {{ comment.created_at|date:"F j, Y, g:i a" }}</em></small>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endif %}
+
+              <form method="post" action="{% url 'posts:add_comment' post_id=post.id post_type=post.post_type|add:'post' %}" class="comment-form">
                 {% csrf_token %}
                 <div class="form-container">
                   <label for="commentary-{{ post.id }}"><strong>Your Comment:</strong></label>
-                  <textarea id="commentary-{{ post.id }}" name="commentary" rows="3" placeholder="Leave a comment...">
-                    {{ post.commentary|default_if_none:"" }}
-                  </textarea>
+                  <textarea id="commentary-{{ post.id }}" name="commentary" rows="3" placeholder="Leave a comment..."></textarea>
                   <div class="post-actions">
                     <button type="submit" class="btn-sm btn-edit">💾 Save Comment</button>
                   </div>
                 </div>
               </form>
-
             </li>
           {% endfor %}
         </ul>

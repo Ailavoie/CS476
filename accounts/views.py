@@ -3,10 +3,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
 from django.views.generic import FormView
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.views.generic import TemplateView
 from django.contrib import messages
 from accounts.models import ConnectionRequest, TherapistProfile
+from .forms import ClientRegisterForm, ConnectionRequestForm, TherapistRegisterForm, UpdateClientInfoForm, UpdateUserInfoForm, UpdateTherapistInfoForm
+from accounts.models import ConnectionRequest, TherapistProfile, ClientProfile
 from .forms import ClientRegisterForm, ConnectionRequestForm, TherapistRegisterForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
@@ -23,6 +25,21 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import TwoFactorCode
 from django.contrib.auth import get_user_model
 import json
+from django.views.decorators.http import require_POST
+from django.contrib.auth.views import PasswordChangeView
+
+def delete_other_pending_requests(client_profile, accepted_therapist):
+    """
+    Finds and rejects all pending requests for a client_profile,
+    """
+    # 1. Find all PENDING requests for the given client
+    pending_requests = ConnectionRequest.objects.filter(
+        client=client_profile,
+        status='pending'
+    ).exclude(therapist=accepted_therapist)
+
+    count, _ = pending_requests.delete()  # Django returns (num_deleted, dict)
+    return count
 
 class RegisterView(TemplateView):
     template_name = "accounts/register.html"
@@ -31,6 +48,7 @@ class RegisterView(TemplateView):
         context = super().get_context_data(**kwargs)
         context['client_form'] = ClientRegisterForm(prefix='client')
         context['therapist_form'] = TherapistRegisterForm(prefix='therapist')
+        context['initial_tab'] = kwargs.get('initial_tab', 'client')
         return context
 
     def post(self, request, *args, **kwargs):
@@ -45,7 +63,11 @@ class RegisterView(TemplateView):
                 login(request, user, backend='accounts.backends.EmailBackend')
                 return redirect('core:home')
             else:
-                context = {'client_form': client_form, 'therapist_form': therapist_form}
+                context = {
+                    'client_form': client_form,
+                    'therapist_form': therapist_form,
+                    'initial_tab': 'client'
+                }
                 return render(request, self.template_name, context)
 
         elif account_type == 'therapist':
@@ -57,13 +79,22 @@ class RegisterView(TemplateView):
                 login(request, user, backend='accounts.backends.EmailBackend')
                 return redirect('core:home')
             else:
-                context = {'client_form': client_form, 'therapist_form': therapist_form}
+                context = {
+                    'client_form': client_form,
+                    'therapist_form': therapist_form,
+                    'initial_tab': 'therapist'
+                }
                 return render(request, self.template_name, context)
 
         else:
             client_form = ClientRegisterForm(prefix='client')
             therapist_form = TherapistRegisterForm(prefix='therapist')
-            context = {'client_form': client_form, 'therapist_form': therapist_form, 'error': 'Please select an account type.'}
+            context = {
+                'client_form': client_form,
+                'therapist_form': therapist_form,
+                'initial_tab': 'client',
+                'error': 'Please select an account type.'
+            }
             return render(request, self.template_name, context)
 
 class TherapistListView(ListView):
@@ -73,44 +104,86 @@ class TherapistListView(ListView):
 
     def get_queryset(self):
         therapists = super().get_queryset()
-
         today = date.today()
+
+        current_client_profile = None
+        existing_requests_therapist_ids = set()
+
+        # Check if the user is logged in and has a client profile
+        if self.request.user.is_authenticated and hasattr(self.request.user, 'client_profile'):
+            current_client_profile = self.request.user.client_profile
+
+            # IDs of therapists with pending or accepted requests
+            existing_requests_therapist_ids = set(
+                ConnectionRequest.objects
+                .filter(client=current_client_profile, status__in=['pending', 'accepted'])
+                .values_list('therapist_id', flat=True)
+            )
+
         for t in therapists:
+            # Age calculation
             if t.date_of_birth:
                 t.age = today.year - t.date_of_birth.year - (
                     (today.month, today.day) < (t.date_of_birth.month, t.date_of_birth.day)
                 )
+
+            # Connection flags
+            t.has_pending_request = t.pk in existing_requests_therapist_ids
+            t.is_connected = current_client_profile and current_client_profile.therapist == t
+
         return therapists
-        
-class SendConnectionRequestView(LoginRequiredMixin, FormView):
+
+class SendConnectionRequestViaCodeView(LoginRequiredMixin, FormView):
     template_name = "accounts/send_request.html"
     form_class = ConnectionRequestForm
-    success_url = reverse_lazy("accounts:client_dashboard")
+    success_url = reverse_lazy("accounts:therapist_list")  # Adjust if needed
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
+
+    def form_invalid(self, form):
+        messages.error(self.request, "The connection code is invalid or not found.")
+        return render(self.request, self.template_name, self.get_context_data(form=form))
 
     def form_valid(self, form):
         code = form.cleaned_data["therapist_code"].strip()
         client_profile = self.request.user.client_profile
 
+        # 1. Check if client already has ANY therapist assigned
         if client_profile.therapist:
             messages.error(self.request, "You already have a therapist.")
-            return redirect(self.success_url)
+            return render(self.request, self.template_name, self.get_context_data(form=form)) 
 
-        therapist = get_object_or_404(TherapistProfile, connection_code=code)
+        # 2. Find the therapist
+        try:
+            therapist = TherapistProfile.objects.get(connection_code=code)
+        except TherapistProfile.DoesNotExist:
+            return self.form_invalid(form) 
 
-        existing_request = ConnectionRequest.objects.filter(
-            client=client_profile,
-            therapist=therapist,
-            status__in=["pending", "accepted"]
-        ).first()
+        # --- Connection Established (Automatic Acceptance Logic) ---
 
-        if existing_request:
-            messages.warning(self.request, "You already sent a request to this therapist.")
-            return redirect(self.success_url)
+        # A. Assign the therapist
+        client_profile.therapist = therapist
+        client_profile.save()
 
-        ConnectionRequest.objects.create(client=client_profile, therapist=therapist)
-        messages.success(self.request, "Connection request sent!")
-        return super().form_valid(form)
-    
+        # B. Create the ConnectionRequest entry with 'accepted' status
+        ConnectionRequest.objects.create(
+            client=client_profile, 
+            therapist=therapist, 
+            status="accepted"
+        )
+
+        # C. Automatically reject all other pending requests
+        delete_other_pending_requests(client_profile, therapist)
+
+        # D. Send success message
+        messages.success(self.request, f"You are now connected to {therapist.first_name} {therapist.last_name}.")
+
+        # E. Render the same page (or redirect if you prefer)
+        # return render(self.request, self.template_name, self.get_context_data(form=form))
+        return redirect('accounts:therapist_list')
+
 class ConnectionRequestListView(LoginRequiredMixin, ListView):
     model = ConnectionRequest
     template_name = "accounts/therapist_requests.html"
@@ -118,12 +191,16 @@ class ConnectionRequestListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         therapist = self.request.user.therapist_profile
-        return ConnectionRequest.objects.filter(therapist=therapist, status="pending").order_by("-created_at")
+        return ConnectionRequest.objects.filter(
+            therapist=therapist, status="pending"
+        ).order_by("-created_at")
 
 class AcceptConnectionRequestView(LoginRequiredMixin, View):
     def post(self, request, pk):
         therapist = request.user.therapist_profile
-        connection_request = get_object_or_404(ConnectionRequest, pk=pk, therapist=therapist, status="pending")
+        connection_request = get_object_or_404(
+            ConnectionRequest, pk=pk, therapist=therapist, status="pending"
+        )
 
         client_profile = connection_request.client
         client_profile.therapist = therapist
@@ -132,14 +209,16 @@ class AcceptConnectionRequestView(LoginRequiredMixin, View):
         connection_request.status = "accepted"
         connection_request.save()
 
-        messages.success(request, f"You are now connected with {client_profile.first_name}.")
+        messages.success(request, f"You are now connected with {client_profile.user.first_name}.")
+        delete_other_pending_requests(client_profile, therapist)
         return redirect("accounts:therapist_requests")
-
 
 class RejectConnectionRequestView(LoginRequiredMixin, View):
     def post(self, request, pk):
         therapist = request.user.therapist_profile
-        connection_request = get_object_or_404(ConnectionRequest, pk=pk, therapist=therapist, status="pending")
+        connection_request = get_object_or_404(
+            ConnectionRequest, pk=pk, therapist=therapist, status="pending"
+        )
 
         connection_request.status = "rejected"
         connection_request.save()
@@ -147,6 +226,101 @@ class RejectConnectionRequestView(LoginRequiredMixin, View):
         messages.info(request, "Request rejected.")
         return redirect("accounts:therapist_requests")
 
+class TherapistDisconnectView(LoginRequiredMixin, View):
+    """
+    Handles client disconnection from therapist.
+    If the request includes ?next=therapist-list or ?next=send-request, 
+    it redirects back to the appropriate page.
+    """
+    # success_url is only used as a default fallback now
+    success_url = reverse_lazy("accounts:dashboard") 
+
+    def get_object(self):
+        therapist_id = self.kwargs.get("therapist_id")
+        return get_object_or_404(TherapistProfile, id=therapist_id)
+
+    def post(self, request, therapist_id):
+        client_profile = request.user.client_profile
+        therapist = self.get_object()
+
+        # --- Determine the final redirect URL ---
+        next_page = request.GET.get("next")
+        
+        if next_page == "therapist-list":
+            # New condition: Redirect to the therapist list
+            redirect_target = reverse("accounts:therapist_list")
+        else:
+            # Default fallback: Redirect to the dashboard
+            redirect_target = self.success_url
+        # ----------------------------------------
+
+        if not client_profile.therapist:
+            messages.error(request, "You are not currently connected with any therapist.")
+            # Use the determined redirect target
+            return redirect(redirect_target)
+
+        if client_profile.therapist != therapist:
+            messages.error(request, "You are not connected with this therapist.")
+            # Use the determined redirect target
+            return redirect(redirect_target)
+
+        # 1. Disconnect the client
+        client_profile.therapist = None
+        client_profile.save()
+
+        # 2. Update the connection request status
+        ConnectionRequest.objects.filter(
+            client=client_profile,
+            therapist=therapist,
+            status="accepted"
+        ).update(status="disconnected")
+
+        messages.success(request, "You have successfully disconnected from your therapist.")
+        # Final redirection
+        return redirect(redirect_target)
+
+class SendDirectConnectionRequestView(LoginRequiredMixin, View):
+    """
+    Handles sending a direct connection request to a therapist
+    without requiring an access code.
+    """
+    success_url = reverse_lazy("accounts:therapist_list")
+
+    def post(self, request, therapist_id):
+        client_profile = request.user.client_profile
+        therapist = get_object_or_404(TherapistProfile, id=therapist_id)
+
+        # 1. Check if client already has a therapist
+        if client_profile.therapist:
+            if client_profile.therapist == therapist:
+                messages.warning(request, "You are already connected with this therapist.")
+            else:
+                messages.error(request, "You already have a therapist. Disconnect before sending a new request.")
+            return redirect(self.success_url)
+
+        # 2. Check for existing pending/accepted request to the same therapist
+        existing_request = ConnectionRequest.objects.filter(
+            client=client_profile,
+            therapist=therapist,
+            status__in=["pending", "accepted"]
+        ).first()
+
+        if existing_request:
+            if existing_request.status == "accepted":
+                messages.warning(request, "You are already connected with this therapist.")
+            else:
+                messages.warning(request, "You already sent a pending request to this therapist.")
+            return redirect(self.success_url)
+
+        # 3. Create a new pending connection request
+        ConnectionRequest.objects.create(
+            client=client_profile,
+            therapist=therapist,
+            status="pending"
+        )
+
+        messages.success(request, f"Connection request sent to {therapist.first_name} {therapist.last_name}.")
+        return redirect(self.success_url)
 
 @login_required
 def dashboard_view(request):
@@ -467,3 +641,98 @@ def reset_password_submit(request, token):
             })
     
     return redirect('accounts:login')
+def update_info(request):
+    user = request.user
+
+    if hasattr(user, "client_profile"):
+        return render(request, "accounts/client_update_info.html", {"user": user})
+    elif hasattr(user, "therapist_profile"):
+        return render(request, "accounts/therapist_update_info.html", {"user": user})
+    else:
+        return redirect("accounts:register")
+
+#A post method is required to call this function
+@require_POST
+def toggle_twofa(request):
+    #the user is stored
+    user = request.user
+
+    #if the user is a client
+    if hasattr(user, "client_profile"):
+        client = request.user.client_profile
+        #twofa field is updated to the opposite
+        client.twofa = not client.twofa
+        #new twofa field is saved
+        client.save()
+        print("Saved client 2FA:", client.twofa)
+        #json is returned to update view
+        return JsonResponse({'twofa': client.twofa})
+    #if the user is a therapist
+    else:
+        therapist = request.user.therapist_profile
+        #twofa field is updated to the opposite
+        therapist.twofa = not therapist.twofa
+        #new twofa field is saved
+        therapist.save()
+        print("Saved therapist 2FA:", therapist.twofa)
+        #json is returned to update view
+        return JsonResponse({'twofa': therapist.twofa})
+    
+#Login required for this view. View is for updating the user's info    
+@login_required
+def update_user_info(request):
+    #user is set
+    user = request.user
+    #if profile is set based off if a user has a client_profile or a therapist_profile
+    profile = user.client_profile if hasattr(user, "client_profile") else user.therapist_profile if hasattr(user, "therapist_profile") else None
+    print(profile)
+    
+    #If there is a post method
+    if request.method == 'POST':
+
+        #If the user has a client profile the UpdateClientInfoForm class is called
+        if hasattr(user, "client_profile"):
+            profile_form = UpdateClientInfoForm(request.POST, instance=profile)
+        #If the user has a therapist profile the UpdateTherapistInfoForm class is called
+        elif hasattr(user, "therapist_profile"):
+            profile_form = UpdateTherapistInfoForm(request.POST, instance=profile)
+
+        #if the form has no errors save the form and redirect
+        if profile_form.is_valid()  :
+            profile_form.save()
+            messages.success(request, "Your changes have been saved.")
+            return redirect('accounts:update_user_info')
+        else:
+            return redirect('accounts:update_user_info')
+    #If it is not a post method fill the fields with current data
+    else:
+        #user_form is used for the email field
+        user_form = UpdateUserInfoForm(instance=user)
+
+        #if the user is a client show client fields
+        if hasattr(user, "client_profile"):
+            profile_form = UpdateClientInfoForm(instance=profile)
+        #if the user is a therapist show therapist fields
+        elif hasattr(user, "therapist_profile"):
+            profile_form = UpdateTherapistInfoForm(instance=profile)
+        #if neither redirect to registration
+        else:
+            return redirect("accounts:register")
+        
+        #render the html with the field data
+        return render(request, "accounts/update_user_info.html", {
+            "user_form": user_form,
+            "profile_form": profile_form,
+            })
+
+#view for customizing the PasswordChangeView
+class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
+    #update the template
+    template_name = 'accounts/change_password.html'
+    #update the success url page
+    success_url = reverse_lazy('accounts:update_info')
+
+    #add a success message upon password change
+    def form_valid(self, form):
+        messages.success(self.request, "Your password has been changed successfully!")
+        return super().form_valid(form)

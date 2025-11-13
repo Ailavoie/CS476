@@ -7,23 +7,253 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'accounts/css/style.css' %}">
+<style>
+    /* --- General Dashboard/Card Styles (Kept from Original) --- */
+    .dashboard-center {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 30px;
+        text-align: center;
+    } 
+    .dashboard-card {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        margin-bottom: 30px; 
+        gap:20px;
+    }
+
+    .dashboard-card h4 {
+        font-size: 22px;
+        color: #2d3748; 
+        font-weight: 700;
+        margin-bottom: 20px; 
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    /* --- Action Button Styles (Kept from Original) --- */
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 15px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-danger {
+        background: linear-gradient(45deg, #f56565, #e53e3e);
+    }
+
+    .btn-danger:hover {
+        background: linear-gradient(45deg, #e53e3e, #c53030);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(229, 62, 62, 0.3);
+    }
+
+    .dashboard-icon {
+        font-size: 26px;
+        color: #667eea;
+    }
+
+    /* --- NEW LAYOUT STYLES for Two-Column Connection Methods --- */
+    .connection-methods-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+        align-items: stretch; /* Ensure panels fill vertical space */
+        margin-bottom: 40px;
+        padding: 20px 0;
+    }
+
+    .method-panel {
+        flex: 1;
+        padding: 25px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between; /* Push button to bottom if panels have unequal text */
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    
+    .method-panel h3 {
+        font-size: 20px;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .method-panel p {
+        color: #4a5568;
+        margin-bottom: 20px;
+    }
+
+    .vertical-divider {
+        width: 1px;
+        background-color: #e2e8f0; /* Light grey vertical line */
+        align-self: stretch; 
+        min-height: 100%;
+    }
+
+    /* Responsive adjustments for mobile */
+    @media (max-width: 768px) {
+        .connection-methods-layout {
+            flex-direction: column;
+            gap: 20px;
+            padding: 0;
+        }
+        .vertical-divider {
+            width: 100%;
+            height: 1px;
+            margin: 10px 0;
+        }
+    }
+
+    /* --- Modal styles (Kept from Original) --- */
+    .modal { display: none; }
+    .modal.is-open { display: block; }
+    .modal__overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+    .modal__container {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    .modal__header { margin-bottom: 20px; }
+    .modal__title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #2d3748;
+    }
+    .modal__close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        float: right;
+        color: #718096;
+    }
+    .modal__content {
+        margin-bottom: 30px;
+        color: #4a5568;
+        font-size: 16px;
+    }
+    .modal__footer {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+    .modal__btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .modal__btn-danger {
+        background: #f56565;
+        color: white;
+    }
+    .modal__btn-danger:hover {
+        background: #e53e3e;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 <section class="therapists-section">
     <div class="container">
         <div class="section-title">
-            <h2>Our Therapists</h2>
-            <p>Connect with certified professionals specialized in improving your mental wellbeing.</p>
+            <!-- Title changes based on connection status -->
+            {% if user.is_authenticated and user.client_profile.therapist %}
+                <h2>My Connection Status</h2>
+            {% else %}
+                <h2>Connect with Your Therapist</h2>
+                <p>Please select your preferred connection method below to begin working with a professional.</p>
+            {% endif %}
         </div>
 
-        <div class="therapist-actions">
-            <a href="{% url 'accounts:send_connection_request' %}" class="btn btn-primary">
-                <i class="fas fa-link"></i> Connect with a therapist
-            </a>
+        {% if user.is_authenticated and user.client_profile.therapist %}
+        <!-- State 1: User is CONNECTED -->
+        <div class="dashboard-center">  
+            <div class="dashboard-card" style="max-width: 400px; margin-left: 0;">
+                <h4><i class="fas fa-user-md dashboard-icon"></i>My Therapist</h4>
+                <p>
+                    You are connected with 
+                    <strong>{{ user.client_profile.therapist.user.first_name }} {{ user.client_profile.therapist.user.last_name }}</strong>.
+                </p>
+                <button class="btn-action btn-danger" style="margin-top: 20px;" 
+                        data-micromodal-trigger="disconnectModal"
+                        onclick="prepareDisconnect('{{ user.client_profile.therapist.id }}')">
+                    <i class="fas fa-unlink"></i> Disconnect
+                </button>
+            </div>
         </div>
+        {% else %}
+  
+        <div class="connection-methods-layout">
+            <div class="method-panel code-connect" style="border-left: 5px solid #007bff;">
+                <div>
+                    <h3><i class="fas fa-key" style="color: #007bff;"></i> Already have a therapist?</h3>
+                    <p>If your therapist has provided you with a unique connection code, use this option for an instant, verified connection.</p>
+                </div>
+                <a href="{% url 'accounts:send_connection_request' %}" class="btn btn-action w-100" 
+                   style="background-color: #007bff; color: white; text-align: center;">
+                    <i class="fas fa-lock"></i> Enter Access Code
+                </a>
+            </div>
 
-        <div class="therapist-grid">
+            <hr />
+
+            <!-- Panel 2: Browse Available Therapists -->
+            <div class="method-panel browse-intro" style="border-left: 5px solid #48bb78;">
+                <div>
+                    <h3><i class="fas fa-search" style="color: #48bb78;"></i> 2. Browse & Connect</h3>
+                    <p>Review the profiles below and click 'Connect' to send a formal request to the professional of your choice.</p>
+                </div>
+                 {% if messages %}
+        <ul class="messages" style="list-style: none; padding: 0; margin-bottom: 20px;">
+            {% for message in messages %}
+        <li{% if message.tags %} class="{{ message.tags }} alert alert-{{ message.tags }}"{% endif %} 
+                style="padding: 15px; border-radius: 8px; margin-bottom: 10px; font-weight: 600; background-color: #d1ecf1; color: #0c2e60; text-align: center;">
+                <i class="fas fa-info-circle" style="margin-right: 8px;"></i>
+                {{ message }}
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+            </div>
+        </div>
+        <div class="therapist-grid" id="therapist-list-grid">
             {% for therapist in therapists %}
                 <div class="therapist-card">
                     <div class="therapist-avatar">
@@ -48,12 +278,79 @@
                                 {{ therapist.age }} years old
                             </p>
                         {% endif %}
+
+                        <div class="card-action-bar">
+                            {% if therapist.is_connected %}
+                                <button type="button" class="btn btn-danger btn-sm" disabled>
+                                    <i class="fas fa-unlink"></i> Disconnect
+                                </button>
+                            {% elif therapist.has_pending_request %}
+                                <button type="button" class="btn btn-warning btn-sm" disabled>
+                                    <i class="fas fa-clock"></i> Request Sent
+                                </button>
+                            {% else %}
+                                <form method="post" action="{% url 'accounts:send_direct_request' therapist.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-paper-plane"></i> Connect
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             {% empty %}
                 <p class="no-therapists">No therapists available at the moment. Please check back later.</p>
             {% endfor %}
         </div>
+        {% endif %}
     </div>
 </section>
+
+<!-- Modal for Disconnection Confirmation (Kept from Original) -->
+<div class="modal micromodal-slide" id="disconnectModal" aria-hidden="true">
+  <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+    <div class="modal__container" role="dialog" aria-modal="true">
+      <header class="modal__header">
+        <h2 class="modal__title">Disconnect from Therapist?</h2>
+        <button class="modal__close" aria-label="Close modal" data-micromodal-close>×</button>
+      </header>
+      <main class="modal__content">
+        <p>Are you sure you want to disconnect from your therapist?</p>
+        <p><strong>This action cannot be undone.</strong></p>
+      </main>
+      <footer class="modal__footer">
+        <form id="disconnectForm" method="post" action="">
+          {% csrf_token %}
+          <button type="submit" class="modal__btn modal__btn-danger">Yes, Disconnect</button>
+          <button type="button" class="modal__btn" data-micromodal-close>Cancel</button>
+        </form>
+      </footer>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="https://unpkg.com/micromodal/dist/micromodal.min.js"></script>
+<script>
+  // Initialize MicroModal
+  document.addEventListener('DOMContentLoaded', function() {
+    MicroModal.init({
+      openTrigger: 'data-micromodal-trigger',
+      closeTrigger: 'data-micromodal-close',
+      disableScroll: true,
+      disableFocus: true,
+      awaitCloseAnimation: true
+    });
+  });
+
+  // Function to set the dynamic form action before modal opens
+  function prepareDisconnect(therapistId) {
+    const form = document.getElementById('disconnectForm');
+    // Ensure the URL matches your Django configuration
+    form.action = `/accounts/disconnect/${therapistId}/?next=therapist-list`;
+  }
+</script>
 {% endblock %}

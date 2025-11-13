@@ -1,6 +1,17 @@
+<!-- This is the HTML code for the Navigation bar at the top of the page. It is inheirited by all other httml files -->
 <nav class="navbar">
     <div class="nav-container">
         <!-- Brand -->
+         {% if user.is_authenticated %}
+        <div class="nav-brand">
+            <a href="{% url 'accounts:dashboard' %}" class="brand-link">
+                <div class="brand-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <span class="brand-text">Mindlink</span>
+            </a>
+        </div>
+        {% else %}
         <div class="nav-brand">
             <a href="{% url 'core:home' %}" class="brand-link">
                 <div class="brand-icon">
@@ -9,51 +20,51 @@
                 <span class="brand-text">Mindlink</span>
             </a>
         </div>
+        {% endif %}
 
         <!-- Menu -->
         <div class="nav-menu" id="nav-menu">
+            {% if user.is_authenticated %}
+            <!-- Clients and Therapists see this -->
+            <ul class="nav-list">
+                <li class="nav-item">
+                    <a href="{% url 'accounts:dashboard' %}#home" class="nav-link">Home</a>
+                </li>
+            {% else %}
+            <!-- Users not logged in see this -->
             <ul class="nav-list">
                 <li class="nav-item">
                     <a href="{% url 'core:home' %}#home" class="nav-link">Home</a>
                 </li>
+            {% endif %}
+            {% if user.is_authenticated and user.is_client %}
+                <!-- Clients see this -->
                 <li class="nav-item">
-                    <a href="{% url 'core:home' %}#features" class="nav-link">Features</a>
+                    <a href="{% url 'accounts:therapist_list' %}" class="nav-link">Therapists</a>
                 </li>
+            {% elif user.is_authenticated and user.is_therapist %}
+                <!-- Therapists see this -->
                 <li class="nav-item">
-                    <a href="{% url 'core:home' %}#how-it-works" class="nav-link">How It Works</a>
+                    <a href="{% url 'posts:therapist_clients' %}" class="nav-link">Clients</a>
                 </li>
+            {% endif %}
 
-                {% if user.is_authenticated and user.is_client %}
-                    <!-- Clients see this -->
-                    <li class="nav-item">
-                        <a href="{% url 'accounts:therapist_list' %}" class="nav-link">Therapists</a>
-                    </li>
-                {% elif user.is_authenticated and user.is_therapist %}
-                    <!-- Therapists see this -->
-                    <li class="nav-item">
-                        <a href="{% url 'posts:therapist_clients' %}" class="nav-link">Clients</a>
-                    </li>
+            {% if user.is_authenticated and user.is_client %}
+            <!-- Clients see this -->
+                <li class="nav-item">
+                    <a href="{% url 'posts:list_posts' %}" class="nav-link">Posts</a>
+                </li>
                 {% endif %}
-
-                {% if user.is_authenticated and user.is_client %}
-                    <li class="nav-item">
-                        <a href="{% url 'posts:list_posts' %}" class="nav-link">Posts</a>
-                    </li>
-                {% else %}
-                    <li class="nav-item">
-                        <a href="{% url 'core:about' %}" class="nav-link">About</a>
-                    </li>
-                {% endif %}
-
             </ul>
         </div>
 
         <!-- Authentication buttons -->
         <div class="nav-auth">
             {% if user.is_authenticated %}
-                <a href="{% url 'accounts:dashboard' %}" class="nav-link login-link">
+            <!-- Clients and Therapists see the welcome and logout button -->
+                <a href="{% url 'accounts:update_info' %}" class="nav-link login-link">
                     <i class="fas fa-user"></i>
-                    Hi {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}!
+                    Hi {% if user.is_client %}{{ user.client_profile.first_name }}{% else %}{{ user.therapist_profile.first_name }}{% endif %}!
                 </a>
                 <form method="post" action="{% url 'accounts:logout' %}" style="display:inline;">
                     {% csrf_token %}
@@ -63,6 +74,7 @@
                     </button>
                 </form>
             {% else %}
+            <!-- If not logged in, the user sees the login and register buttons -->
                 <a href="{% url 'accounts:login' %}" class="nav-link login-link">
                     <i class="fas fa-sign-in-alt"></i>
                     Login
