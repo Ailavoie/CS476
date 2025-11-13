@@ -47,6 +47,10 @@
                 <li class="nav-item">
                     <a href="{% url 'posts:therapist_clients' %}" class="nav-link">Clients</a>
                 </li>
+
+                <li class="nav-item">
+                    <a href="{% url 'accounts:therapist_requests' %}" class="nav-link">Connection Requests</a>
+                </li>
             {% endif %}
 
             {% if user.is_authenticated and user.is_client %}
