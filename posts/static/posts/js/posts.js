@@ -98,15 +98,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Calendar toggle (placeholder for future feature)
-  const calendarToggle = document.getElementById('calendarToggle');
-  if (calendarToggle) {
-    calendarToggle.addEventListener('click', function() {
-      alert('Calendar view coming soon! 📅');
-      // TODO: Implement calendar view
-    });
-  }
-
   // Keyboard shortcuts
   document.addEventListener('keydown', function(e) {
     // Escape key closes expanded posts

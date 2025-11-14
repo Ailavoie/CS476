@@ -71,6 +71,24 @@ Mindlink - Edit Post
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
   }
 
+  .word-count-display.near-limit {
+    background: linear-gradient(135deg, #ffcc66 0%, #ff7a66 100%);
+    box-shadow: 0 2px 10px rgba(255, 122, 102, 0.35);
+  }
+
+  .word-count-display.over-limit {
+    background: linear-gradient(135deg, #ff8a8a 0%, #ff4b4b 100%);
+  }
+
+  #limitNotice {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-left: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.12);
+  }
+
   .mood-question {
     margin-bottom: 20px;
   }
@@ -136,9 +154,10 @@ Mindlink - Edit Post
           <div style="margin-bottom:10px">
             <textarea id="text" name="text">{{ post.text|safe }}</textarea>
           </div>
-          <div class="word-count-display">
-            <div class="count-item"><i class="fas fa-font"></i> Words: <strong id="wordCount">0</strong></div>
+          <div class="word-count-display" id="wordCountContainer">
+            <div class="count-item"><i class="fas fa-font"></i> Words: <strong id="wordCount">0 / 400</strong></div>
             <div class="count-item"><i class="fas fa-keyboard"></i> Chars: <strong id="charCount">0</strong></div>
+            <div id="limitNotice" style="display:none"></div>
           </div>
 
         {% elif post_type == 'moodpost' %}
@@ -207,6 +226,10 @@ window.addEventListener('beforeunload', function(e) {
 // ======== Global CKEDITOR INSTANCE =========
 let editorInstance = null;
 
+// ====== Word limit config ======
+const MAX_WORDS = 400;
+const WARN_THRESHOLD = Math.floor(MAX_WORDS * 0.9); // 90% => 360
+
 // ===== Helper: Show validation messages visually =====
 function showValidationMessage(msg) {
   const warning = document.getElementById('validationWarning');
@@ -218,14 +241,37 @@ function showValidationMessage(msg) {
   setTimeout(() => warning.classList.remove('show'), 3000);
 }
 
-// --- CKEditor Setup ---
+// ===== Text helpers =====
+function plainTextFromHtml(html) {
+  if (!html) return '';
+  return html
+    .replace(/<[^>]*>/g, '')   // remove HTML tags
+    .replace(/&nbsp;/g, ' ')   // handle CKEditor non-breaking spaces
+    .replace(/\u200B/g, '')    // zero-width
+    .trim();
+}
+
+function countWordsFromText(text) {
+  if (!text) return 0;
+  const wordsArray = text.split(/\s+/).filter(w => w.length > 0);
+  return wordsArray.length;
+}
+
+function truncateToWords(text, max) {
+  if (!text) return '';
+  const words = text.split(/\s+/).filter(w => w.length > 0);
+  if (words.length <= max) return words.join(' ');
+  return words.slice(0, max).join(' ');
+}
+
+// ======== CKEditor Setup (with word limit enforcement) =========
 function setupCKEditor(textareaId) {
   if (typeof CKEDITOR === 'undefined') {
     console.error('CKEDITOR object is undefined. Check asset loading.');
     return;
   }
   if (CKEDITOR.instances[textareaId]) CKEDITOR.instances[textareaId].destroy(true);
-  
+
   CKEDITOR.replace(textareaId);
 
   CKEDITOR.instances[textareaId].on('instanceReady', function(evt) {
@@ -233,45 +279,79 @@ function setupCKEditor(textareaId) {
 
     const updateWordCount = () => {
       const content = editorInstance.getData();
-      const textOnly = content
-        .replace(/<[^>]*>/g, '')   // remove HTML tags
-        .replace(/&nbsp;/g, ' ')   // handle CKEditor non-breaking spaces
-        .trim();
-        
-      // Character count: exclude spaces, tabs, newlines
-      const chars = textOnly.replace(/[ \t\n\r]+/g, '').length;
+      const textOnly = plainTextFromHtml(content);
 
-      // Word count: ignore blank segments, multiple spaces, newlines
-      const wordsArray = textOnly.split(/\s+/).filter(w => w.length > 0);
-      const words = wordsArray.length;
-      
+      const chars = textOnly.replace(/[ \t\n\r]+/g, '').length;
+      const words = countWordsFromText(textOnly);
+
       const wordCountEl = document.getElementById('wordCount');
       const charCountEl = document.getElementById('charCount');
-      if (wordCountEl) wordCountEl.textContent = words;
+      const wordContainer = document.querySelector('.word-count-display');
+      const limitNotice = document.getElementById('limitNotice');
+
+      if (wordCountEl) wordCountEl.textContent = `${words} / ${MAX_WORDS}`;
       if (charCountEl) charCountEl.textContent = chars;
+
+      if (wordContainer) {
+        if (words >= MAX_WORDS) {
+          wordContainer.classList.remove('near-limit');
+          wordContainer.classList.add('over-limit');
+        } else if (words >= WARN_THRESHOLD) {
+          wordContainer.classList.add('near-limit');
+          wordContainer.classList.remove('over-limit');
+        } else {
+          wordContainer.classList.remove('near-limit', 'over-limit');
+        }
+      }
+
+      if (limitNotice) {
+        if (words >= WARN_THRESHOLD && words < MAX_WORDS) {
+          limitNotice.textContent = `Approaching limit — ${MAX_WORDS - words} words left`;
+          limitNotice.style.display = 'inline-block';
+        } else if (words >= MAX_WORDS) {
+          limitNotice.textContent = `Word limit reached (${MAX_WORDS}) — extra content was truncated.`;
+          limitNotice.style.display = 'inline-block';
+        } else {
+          limitNotice.style.display = 'none';
+        }
+      }
     };
 
+    // Initial count (do not mark as unsaved)
+    updateWordCount();
+
     const handleUserChange = () => {
-        // Set unsaved changes flag ONLY on user input
+      // mark unsaved changes
+      if (!hasUnsavedChanges) {
         hasUnsavedChanges = true;
         const unsaved = document.getElementById('unsavedWarning');
         if (unsaved) unsaved.classList.add('show');
-        updateWordCount();
-    }
+      }
+      // enforce limit then update
+      enforceWordLimitInEditor();
+      updateWordCount();
+    };
 
-    // Initial count (does not set hasUnsavedChanges)
-    updateWordCount();
-    
-    // Listen for changes and set flag
-    // Note: We use 'key' and 'paste' to detect input earlier than 'change' (which fires on blur)
-    editorInstance.on('key', () => setTimeout(handleUserChange, 10)); 
-    editorInstance.on('paste', () => setTimeout(handleUserChange, 100)); 
-    // The 'change' event still acts as a good fallback
-    editorInstance.on('change', handleUserChange); 
+    editorInstance.on('key', () => setTimeout(handleUserChange, 10));
+    editorInstance.on('paste', () => setTimeout(handleUserChange, 100));
+    editorInstance.on('change', handleUserChange);
   });
 }
 
-// --- Mic Button Setup ---
+// ======== Enforce / Truncate in CKEditor if over limit ========
+function enforceWordLimitInEditor() {
+  if (!editorInstance) return;
+  const data = editorInstance.getData();
+  const txt = plainTextFromHtml(data);
+  const words = countWordsFromText(txt);
+  if (words <= MAX_WORDS) return;
+
+  const truncated = truncateToWords(txt, MAX_WORDS);
+  editorInstance.setData(truncated);
+  editorInstance.focus();
+}
+
+// ======== Mic Button Setup (respects remaining allowance) =========
 function setupMicButton() {
   const micButton = document.getElementById('mic-button');
   if (!micButton) return;
@@ -290,9 +370,25 @@ function setupMicButton() {
         if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
 
       if (finalTranscript && editorInstance) {
-        editorInstance.insertHtml(finalTranscript + ' ');
-        // Firing 'change' here will trigger the handleUserChange logic in CKEditor setup
-        editorInstance.fire('change');
+        const currentText = plainTextFromHtml(editorInstance.getData());
+        const currentWords = countWordsFromText(currentText);
+        const incomingWords = countWordsFromText(finalTranscript);
+        const allowed = Math.max(0, MAX_WORDS - currentWords);
+
+        if (allowed <= 0) {
+          showValidationMessage('Word limit reached. Cannot insert more text.');
+          return;
+        }
+        let toInsert = finalTranscript;
+        if (incomingWords > allowed) {
+          toInsert = truncateToWords(finalTranscript, allowed);
+          editorInstance.insertHtml(toInsert + ' ');
+          editorInstance.fire('change');
+          showValidationMessage(`Inserted partial dictation — reached ${MAX_WORDS} words.`);
+        } else {
+          editorInstance.insertHtml(finalTranscript + ' ');
+          editorInstance.fire('change');
+        }
       }
     };
 
@@ -320,7 +416,7 @@ function setupMicButton() {
 document.addEventListener('DOMContentLoaded', function () {
   const postType = "{{ post_type|default:'' }}".toLowerCase();
   const editForm = document.getElementById('editPostForm');
-  
+
   // ✅ Mood Post emoji selector & unsaved tracking
   if (postType === "moodpost") {
     document.querySelectorAll('.emoji-option').forEach(el => {
@@ -334,10 +430,9 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('unsavedWarning').classList.add('show');
       });
     });
-    
+
     // Track changes on other input fields for moodpost
     editForm.querySelectorAll('.form-control, textarea').forEach(input => {
-        // Only trigger on change/input events, not initial load
         input.addEventListener('change', function() {
             hasUnsavedChanges = true;
             document.getElementById('unsavedWarning').classList.add('show');
@@ -349,7 +444,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // ✅ Daily Post CKEditor + mic setup
+  // ✅ Daily Post CKEditor + mic setup (with word limit)
   if (postType === "dailypost" && typeof CKEDITOR !== 'undefined') {
     setupCKEditor('text');
     setupMicButton();
@@ -360,30 +455,30 @@ document.addEventListener('DOMContentLoaded', function () {
     // Clear previous validation message
     const validationWarning = document.getElementById('validationWarning');
     if (validationWarning) validationWarning.classList.remove('show');
-    
-    // Daily post validation
+
     if (postType === 'dailypost') {
       if (!editorInstance) {
         showValidationMessage('Editor not ready. Please wait a moment.');
         e.preventDefault();
         return;
       }
-      
-      const rawText = editorInstance.getData()
-        .replace(/<[^>]*>/g, '')
-        .replace(/&nbsp;/g, ' ')
-        .trim();
 
-      // Remove whitespace to detect any visible characters
+      const rawText = plainTextFromHtml(editorInstance.getData()).trim();
       const visibleChars = rawText.replace(/\s+/g, '');
       if (visibleChars.length === 0) {
         showValidationMessage('Your daily entry cannot be empty or only whitespace.');
         e.preventDefault();
         return;
       }
+
+      const words = countWordsFromText(rawText);
+      if (words > MAX_WORDS) {
+        showValidationMessage(`Your post exceeds the ${MAX_WORDS}-word limit. Please shorten it.`);
+        e.preventDefault();
+        return;
+      }
     }
 
-    // Mood post validation
     if (postType === 'moodpost') {
       const moodEmojiInput = document.getElementById('moodEmoji');
       if (!moodEmojiInput || moodEmojiInput.value.trim() === '') {
@@ -413,9 +508,14 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
 
-    // Passed validation: clear flag
+    // Passed validation: clear unsaved flag
     hasUnsavedChanges = false;
   });
+
+  // Small safety: periodic enforce
+  setInterval(() => {
+    if (editorInstance) enforceWordLimitInEditor();
+  }, 1500);
 });
 </script>
 {% endblock %}
