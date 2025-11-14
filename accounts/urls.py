@@ -24,6 +24,6 @@ urlpatterns = [
     path('reset-password/<str:token>/submit/', views.reset_password_submit, name='reset_password_submit'),
     path("disconnect/<int:therapist_id>/", views.TherapistDisconnectView.as_view(), name="disconnect_therapist"),
     path('toggle-twofa/', views.toggle_twofa, name='toggle_twofa'),
-    path('update-user-info/', views.update_user_info, name='update_user_info'),
+    path('update-user-info/', views.UpdateUserInfoView.as_view(), name='update_user_info'),
     path("send-request/<int:therapist_id>/", views.SendDirectConnectionRequestView.as_view(), name="send_direct_request"),
 ]

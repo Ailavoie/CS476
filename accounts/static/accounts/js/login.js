@@ -1,5 +1,10 @@
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.querySelector('.register-form');
+
+    if (!loginForm) {
+        console.log("login.js: No login/register form on this page. Script stopped.");
+        return;
+    }
     const modal = document.getElementById('twoFactorModal');
     const codeInput = document.getElementById('codeInput');
     const errorDiv = document.getElementById('errorMessage');

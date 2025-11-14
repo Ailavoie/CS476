@@ -702,52 +702,47 @@ def toggle_twofa(request):
         #json is returned to update view
         return JsonResponse({'twofa': therapist.twofa})
     
-#Login required for this view. View is for updating the user's info    
-@login_required
-def update_user_info(request):
-    #user is set
-    user = request.user
-    #if profile is set based off if a user has a client_profile or a therapist_profile
-    profile = user.client_profile if hasattr(user, "client_profile") else user.therapist_profile if hasattr(user, "therapist_profile") else None
-    print(profile)
-    
-    #If there is a post method
-    if request.method == 'POST':
+class UpdateUserInfoView(LoginRequiredMixin, View):
+    template_name = "accounts/update_user_info.html"
 
-        #If the user has a client profile the UpdateClientInfoForm class is called
+    def get_profile(self, user):
         if hasattr(user, "client_profile"):
-            profile_form = UpdateClientInfoForm(request.POST, instance=profile)
-        #If the user has a therapist profile the UpdateTherapistInfoForm class is called
-        elif hasattr(user, "therapist_profile"):
-            profile_form = UpdateTherapistInfoForm(request.POST, instance=profile)
+            return user.client_profile, UpdateClientInfoForm
+        if hasattr(user, "therapist_profile"):
+            return user.therapist_profile, UpdateTherapistInfoForm
+        return None, None
 
-        #if the form has no errors save the form and redirect
-        if profile_form.is_valid()  :
-            profile_form.save()
-            messages.success(request, "Your changes have been saved.")
-            return redirect('accounts:update_user_info')
-        else:
-            return redirect('accounts:update_user_info')
-    #If it is not a post method fill the fields with current data
-    else:
-        #user_form is used for the email field
-        user_form = UpdateUserInfoForm(instance=user)
-
-        #if the user is a client show client fields
-        if hasattr(user, "client_profile"):
-            profile_form = UpdateClientInfoForm(instance=profile)
-        #if the user is a therapist show therapist fields
-        elif hasattr(user, "therapist_profile"):
-            profile_form = UpdateTherapistInfoForm(instance=profile)
-        #if neither redirect to registration
-        else:
+    def get(self, request):
+        profile, FormClass = self.get_profile(request.user)
+        if not profile:
             return redirect("accounts:register")
-        
-        #render the html with the field data
-        return render(request, "accounts/update_user_info.html", {
+
+        user_form = UpdateUserInfoForm(instance=request.user)
+        profile_form = FormClass(instance=profile)
+
+        return render(request, self.template_name, {
             "user_form": user_form,
             "profile_form": profile_form,
-            })
+        })
+
+    def post(self, request):
+        profile, FormClass = self.get_profile(request.user)
+        if not profile:
+            return redirect("accounts:register")
+
+        user_form = UpdateUserInfoForm(request.POST, instance=request.user)
+        profile_form = FormClass(request.POST, instance=profile)
+
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile_form.save()
+            messages.success(request, "Your changes have been saved.")
+            return redirect("accounts:update_user_info")
+
+        return render(request, self.template_name, {
+            "user_form": user_form,
+            "profile_form": profile_form,
+        })
 
 #view for customizing the PasswordChangeView
 class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):

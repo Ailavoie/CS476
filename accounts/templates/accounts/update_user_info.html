@@ -25,7 +25,7 @@
         </ul>       
         {% endif %}
             {% csrf_token %}
-           <form method="post" class="register-form" id="updateForm">
+           <form method="post" id="updateForm" class="profile-form">
     {% csrf_token %}
     {{ user_form.as_p }}
     {{ profile_form.as_p }}

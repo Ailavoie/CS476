@@ -190,10 +190,16 @@ class UpdateUserInfoForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['email']
-        #This field is visible but disabled so it can not be changed
         widgets = {
-            'email': forms.EmailInput(attrs={'class': 'form-control', 'disabled': True }),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'readonly': True}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['email'].required = False  
+
+    def clean_email(self):
+        return self.instance.email
 
 #The UpdateClientInfoForm is used to set the client fields
 class UpdateClientInfoForm(forms.ModelForm):
