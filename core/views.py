@@ -1,4 +1,4 @@
-from django.shortcuts import redirect, render
+from django.shortcuts import render
 
 def home(request):
     user = request.user
@@ -8,7 +8,7 @@ def home(request):
     elif hasattr(user, "therapist_profile"):
         return render(request, "accounts/therapist_dashboard.html", {"user": user})
     else:
-        return redirect("accounts:register")
+        return render(request, 'core/home.html')
 
 def about(request):
     return render(request, 'core/about.html')
