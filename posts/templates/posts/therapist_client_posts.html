@@ -200,7 +200,9 @@
     </div>
 
     <div class="dashboard-header">
-      <h1>🧠 {{ client.first_name }} {{ client.last_name }}'s Journal Entries</h1>
+      <h1>🧠 {{ client.first_name }} {% if client.last_name %}
+          {{ client.last_name }}
+        {% endif %}'s Journal Entries</h1>
       <p>Review and leave comments to support your client’s progress.</p>
     </div>
 

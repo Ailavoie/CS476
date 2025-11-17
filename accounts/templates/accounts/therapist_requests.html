@@ -108,6 +108,7 @@
 
   .btn-success {
     background: linear-gradient(45deg, #48bb78, #38a169);
+    color: white !important;
   }
   .btn-success:hover {
     background: linear-gradient(45deg, #38a169, #2f855a);
@@ -115,6 +116,7 @@
 
   .btn-danger {
     background: linear-gradient(45deg, #f56565, #e53e3e);
+    color: white !important;
   }
   .btn-danger:hover {
     background: linear-gradient(45deg, #e53e3e, #c53030);
@@ -176,7 +178,9 @@
         <div class="request-card">
           <div class="request-info">
             <i class="fas fa-user-circle" style="margin-right: 8px; color: #764ba2;"></i>
-            <strong>{{ req.client.first_name }} {{ req.client.last_name }}</strong> wants to connect.
+            <strong>{{ req.client.first_name }} {% if req.client.last_name %}
+                {{ req.client.last_name }}
+              {% endif %}</strong> wants to connect.
           </div>
 
           <div class="request-actions">

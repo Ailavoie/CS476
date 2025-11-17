@@ -84,6 +84,7 @@
 
   .btn-view {
     background: linear-gradient(45deg, #63b3ed, #3182ce);
+    color: white !important;
   }
   .btn-view:hover {
     background: linear-gradient(45deg, #4299e1, #2b6cb0);
@@ -91,6 +92,7 @@
 
   .btn-disconnect {
     background: linear-gradient(45deg, #f56565, #e53e3e);
+    color: white !important;
   }
   .btn-disconnect:hover {
     background: linear-gradient(45deg, #e53e3e, #c53030);
@@ -198,7 +200,12 @@
           <li class="client-item">
             <div class="client-info">
               <i class="fas fa-user-circle"></i>
-              <span>{{ client.user.first_name }} {{ client.user.last_name }}</span>
+              <span>
+                {{ client.user.first_name }}
+                {% if client.user.last_name %}
+                  {{ client.user.last_name }}
+                {% endif %}
+              </span>
             </div>
 
             <div class="client-actions">
