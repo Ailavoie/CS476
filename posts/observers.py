@@ -39,7 +39,7 @@ class ConcreteSubject(Subject):
         for observer in self._observers:
             observer.update(self)
 
-# <<interface>> observer envokes the Push strategy for the observers
+# <<interface>> observer
 class Observer(ABC):
     @abstractmethod
     def update(self, subject: Subject) -> None:
